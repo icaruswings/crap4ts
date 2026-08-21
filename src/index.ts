@@ -2,6 +2,8 @@ export { crapScore } from './scorer.js';
 export { extractFunctions, parseFunctions } from './complexity/extract-functions.js';
 export type { ParsedFunction } from './complexity/extract-functions.js';
 export { measureComplexity } from './complexity/measure-complexity.js';
+export { findSourceFiles } from './files/find-source-files.js';
+export { normalizePath, toProjectRelative } from './paths/normalize-path.js';
 export { TOOL_VERSION } from './version.js';
 export {
   AmbiguousCoveragePathError,
