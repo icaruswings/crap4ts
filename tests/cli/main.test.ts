@@ -327,6 +327,42 @@ await writeFile('coverage/coverage-final.json', ${JSON.stringify(generatedCovera
     expect(output.stderr()).toBe('Error: Could not resolve source root: missing-src\n');
   });
 
+  it('returns one with a clean error for an operational source-root resolution failure', async () => {
+    const projectRoot = await makeProject();
+    const output = captureIo();
+    await symlink('source-loop', join(projectRoot, 'source-loop'), 'dir');
+    await writeConfig(projectRoot, {
+      sourceRoots: ['source-loop'],
+      coveragePath: 'coverage/coverage-final.json',
+      coverageFormat: 'istanbul',
+    });
+    await writeCoverage(projectRoot, 'coverage/coverage-final.json', istanbulCoverage());
+
+    const status = await runCli(['--use-existing-coverage'], output.io, projectRoot);
+
+    expect(status).toBe(1);
+    expect(output.stdout()).toBe('');
+    expect(output.stderr()).toBe('Error: Could not resolve source root: source-loop\n');
+  });
+
+  it('returns one with a clean error when coverage artifact cleanup cannot remove a directory', async () => {
+    const projectRoot = await makeProject();
+    const output = captureIo();
+    await mkdir(join(projectRoot, 'coverage-artifact'));
+    await writeConfig(projectRoot, {
+      sourceRoots: ['src'],
+      coverageCommand: nodeExitCommand(0),
+      coveragePath: 'coverage-artifact',
+      coverageFormat: 'istanbul',
+    });
+
+    const status = await runCli([], output.io, projectRoot);
+
+    expect(status).toBe(1);
+    expect(output.stdout()).toBe('');
+    expect(output.stderr()).toBe('Error: Could not remove coverage artifact: coverage-artifact\n');
+  });
+
   it('writes exactly one JSON object to stdout and keeps diagnostic prose inside it', async () => {
     const projectRoot = await makeProject();
     const output = captureIo();

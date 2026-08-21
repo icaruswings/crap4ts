@@ -5,3 +5,6 @@ export class NoSourceFilesError extends UsageError {}
 export class CoverageParseError extends Crap4tsError {}
 export class AmbiguousCoveragePathError extends Crap4tsError {}
 export class CoverageCommandError extends Crap4tsError {}
+export class SourceReadError extends Crap4tsError {}
+export class SourceTraversalError extends Crap4tsError {}
+export class CoverageCleanupError extends Crap4tsError {}

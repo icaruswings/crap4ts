@@ -4,6 +4,7 @@ import { extractFunctions } from '../complexity/extract-functions.js';
 import { matchCoverageFile } from '../coverage/match-file.js';
 import { measureFunctionsCoverage } from '../coverage/measure-function.js';
 import type { CoverageArtifact, CoverageFile } from '../coverage/model.js';
+import { SourceReadError } from '../errors.js';
 import { findSourceFiles } from '../files/find-source-files.js';
 import type { CrapEntry, Diagnostic } from '../model.js';
 import { normalizePath, toProjectRelative } from '../paths/normalize-path.js';
@@ -28,7 +29,12 @@ export async function analyzeProject(options: AnalyzeProjectOptions): Promise<An
   const matchedCoverageFiles = new Set<CoverageFile>();
 
   for (const source of sources) {
-    const sourceText = await readFile(resolve(options.projectRoot, source), 'utf8');
+    let sourceText: string;
+    try {
+      sourceText = await readFile(resolve(options.projectRoot, source), 'utf8');
+    } catch (error) {
+      throw new SourceReadError(`Could not read source file: ${source}`, { cause: error });
+    }
     const functions = extractFunctions(source, sourceText);
     const coverageFile = matchCoverageFile(options.projectRoot, source, options.coverage.files);
 

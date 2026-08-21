@@ -1,8 +1,8 @@
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ConfigError, NoSourceFilesError } from '../../src/errors.js';
+import { ConfigError, NoSourceFilesError, SourceTraversalError } from '../../src/errors.js';
 import { findSourceFiles } from '../../src/files/find-source-files.js';
 
 const temporaryDirectories: string[] = [];
@@ -85,6 +85,29 @@ describe('findSourceFiles', () => {
     await expect(findSourceFiles(projectRoot, ['linked-source-root'], [])).rejects.toBeInstanceOf(
       ConfigError,
     );
+  });
+
+  it('wraps a source-root realpath failure with the configured path', async () => {
+    const projectRoot = await makeProject();
+    await symlink('loop', join(projectRoot, 'loop'), 'dir');
+
+    const error = await findSourceFiles(projectRoot, ['loop'], []).catch((reason: unknown) => reason);
+
+    expect(error).toBeInstanceOf(SourceTraversalError);
+    expect(error).toHaveProperty('message', 'Could not resolve source root: loop');
+  });
+
+  it('wraps a source directory traversal failure with its project-relative path', async () => {
+    const projectRoot = await makeProject();
+    const unreadable = join(projectRoot, 'src/unreadable');
+    await mkdir(unreadable, { recursive: true });
+    await chmod(unreadable, 0o000);
+
+    const error = await findSourceFiles(projectRoot, ['src'], []).catch((reason: unknown) => reason);
+    await chmod(unreadable, 0o700);
+
+    expect(error).toBeInstanceOf(SourceTraversalError);
+    expect(error).toHaveProperty('message', 'Could not read source directory: src/unreadable');
   });
 
   it('reports configured roots and filters when no matching source files exist', async () => {

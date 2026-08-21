@@ -1,9 +1,9 @@
-import { access, mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { prepareCoverage } from '../../src/cli/prepare-coverage.js';
-import { ConfigError } from '../../src/errors.js';
+import { ConfigError, CoverageCleanupError } from '../../src/errors.js';
 
 const temporaryDirectories: string[] = [];
 
@@ -140,5 +140,53 @@ describe('prepareCoverage', () => {
     await expect(prepareCoverage(projectRoot, artifact, directory)).rejects.toBeInstanceOf(ConfigError);
     await expect(exists(safeArtifact)).resolves.toBe(true);
     await expect(exists(escapeLink)).resolves.toBe(true);
+  });
+
+  it('wraps an artifact removal failure with the configured path', async () => {
+    const { projectRoot } = await makeProject();
+    await mkdir(join(projectRoot, 'coverage-artifact'));
+
+    const error = await prepareCoverage(projectRoot, 'coverage-artifact').catch(
+      (reason: unknown) => reason,
+    );
+
+    expect(error).toBeInstanceOf(CoverageCleanupError);
+    expect(error).toHaveProperty(
+      'message',
+      'Could not remove coverage artifact: coverage-artifact',
+    );
+  });
+
+  it('wraps a cleanup target realpath failure with the configured path', async () => {
+    const { projectRoot } = await makeProject();
+    await symlink('coverage-loop', join(projectRoot, 'coverage-loop'), 'dir');
+
+    const error = await prepareCoverage(projectRoot, 'coverage-loop').catch(
+      (reason: unknown) => reason,
+    );
+
+    expect(error).toBeInstanceOf(CoverageCleanupError);
+    expect(error).toHaveProperty(
+      'message',
+      'Could not resolve coverage cleanup target: coverage-loop',
+    );
+  });
+
+  it('wraps a cleanup target stat failure with the configured path', async () => {
+    const { projectRoot } = await makeProject();
+    const unreadable = join(projectRoot, 'unreadable');
+    await mkdir(unreadable);
+    await chmod(unreadable, 0o000);
+
+    const error = await prepareCoverage(projectRoot, 'unreadable/coverage.json').catch(
+      (reason: unknown) => reason,
+    );
+    await chmod(unreadable, 0o700);
+
+    expect(error).toBeInstanceOf(CoverageCleanupError);
+    expect(error).toHaveProperty(
+      'message',
+      'Could not inspect coverage cleanup target: unreadable/coverage.json',
+    );
   });
 });

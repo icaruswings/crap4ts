@@ -36,9 +36,12 @@ export {
   AmbiguousCoveragePathError,
   ConfigError,
   CoverageCommandError,
+  CoverageCleanupError,
   CoverageParseError,
   Crap4tsError,
   NoSourceFilesError,
+  SourceReadError,
+  SourceTraversalError,
   UsageError,
 } from './errors.js';
 export type {

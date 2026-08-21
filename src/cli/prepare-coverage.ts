@@ -1,6 +1,6 @@
 import { lstat, realpath, rm } from 'node:fs/promises';
 import { dirname, isAbsolute, posix, resolve, sep, win32 } from 'node:path';
-import { ConfigError } from '../errors.js';
+import { ConfigError, CoverageCleanupError } from '../errors.js';
 
 function isMissingComponent(error: unknown): boolean {
   return error instanceof Error
@@ -30,7 +30,10 @@ async function resolveExistingComponents(candidate: string, target: string): Pro
       await lstat(existingCandidate);
     } catch (error) {
       if (!isMissingComponent(error)) {
-        throw new ConfigError(`Could not inspect coverage cleanup target: ${target}`, { cause: error });
+        throw new CoverageCleanupError(
+          `Could not inspect coverage cleanup target: ${target}`,
+          { cause: error },
+        );
       }
       const parent = dirname(existingCandidate);
       if (parent === existingCandidate) throw invalidTarget(target);
@@ -42,7 +45,10 @@ async function resolveExistingComponents(candidate: string, target: string): Pro
     try {
       return resolve(await realpath(existingCandidate), ...missingSegments);
     } catch (error) {
-      throw new ConfigError(`Could not resolve coverage cleanup target: ${target}`, { cause: error });
+      throw new CoverageCleanupError(
+        `Could not resolve coverage cleanup target: ${target}`,
+        { cause: error },
+      );
     }
   }
 }
@@ -69,12 +75,35 @@ export async function prepareCoverage(
   artifactPath: string,
   coverageDirectory?: string,
 ): Promise<void> {
-  const realProjectRoot = await realpath(resolve(projectRoot));
+  let realProjectRoot: string;
+  try {
+    realProjectRoot = await realpath(resolve(projectRoot));
+  } catch (error) {
+    throw new CoverageCleanupError(
+      `Could not resolve project root for coverage cleanup: ${projectRoot}`,
+      { cause: error },
+    );
+  }
   const artifact = await safeCleanupTarget(realProjectRoot, artifactPath);
   const directory = coverageDirectory === undefined
     ? undefined
     : await safeCleanupTarget(realProjectRoot, coverageDirectory);
 
-  await rm(artifact, { force: true });
-  if (directory !== undefined) await rm(directory, { recursive: true, force: true });
+  try {
+    await rm(artifact, { force: true });
+  } catch (error) {
+    throw new CoverageCleanupError(`Could not remove coverage artifact: ${artifactPath}`, {
+      cause: error,
+    });
+  }
+  if (directory !== undefined) {
+    try {
+      await rm(directory, { recursive: true, force: true });
+    } catch (error) {
+      throw new CoverageCleanupError(
+        `Could not remove coverage directory: ${coverageDirectory}`,
+        { cause: error },
+      );
+    }
+  }
 }

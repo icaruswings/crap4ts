@@ -1,6 +1,6 @@
 import { lstat, readdir, realpath } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { ConfigError, NoSourceFilesError } from '../errors.js';
+import { ConfigError, NoSourceFilesError, SourceTraversalError } from '../errors.js';
 import { normalizePath, toProjectRelative } from '../paths/normalize-path.js';
 
 function isWithinProject(projectRoot: string, candidate: string): boolean {
@@ -22,12 +22,23 @@ async function walkSourceRoot(
   sourceRoot: string,
   sourceFiles: Set<string>,
 ): Promise<void> {
-  const rootStats = await lstat(sourceRoot);
+  const displayPath = toProjectRelative(projectRoot, sourceRoot);
+  let rootStats;
+  try {
+    rootStats = await lstat(sourceRoot);
+  } catch (error) {
+    throw new SourceTraversalError(`Could not inspect source path: ${displayPath}`, { cause: error });
+  }
   if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) {
     return;
   }
 
-  const entries = await readdir(sourceRoot, { withFileTypes: true });
+  let entries;
+  try {
+    entries = await readdir(sourceRoot, { withFileTypes: true });
+  } catch (error) {
+    throw new SourceTraversalError(`Could not read source directory: ${displayPath}`, { cause: error });
+  }
   entries.sort((left, right) => {
     if (left.name < right.name) {
       return -1;
@@ -74,7 +85,12 @@ export async function findSourceFiles(
   filters: string[],
 ): Promise<string[]> {
   const resolvedProjectRoot = resolve(projectRoot);
-  const realProjectRoot = await realpath(resolvedProjectRoot);
+  let realProjectRoot: string;
+  try {
+    realProjectRoot = await realpath(resolvedProjectRoot);
+  } catch (error) {
+    throw new SourceTraversalError(`Could not resolve project root: ${projectRoot}`, { cause: error });
+  }
   const resolvedSourceRoots = await Promise.all(sourceRoots.map(async (sourceRoot) => {
     const resolvedSourceRoot = resolve(resolvedProjectRoot, normalizePath(sourceRoot));
     if (!isWithinProject(resolvedProjectRoot, resolvedSourceRoot)) {
@@ -85,7 +101,10 @@ export async function findSourceFiles(
     try {
       realSourceRoot = await realpath(resolvedSourceRoot);
     } catch (error) {
-      throw new ConfigError(`Could not resolve source root: ${sourceRoot}`, { cause: error });
+      if (isMissingPath(error)) {
+        throw new ConfigError(`Could not resolve source root: ${sourceRoot}`, { cause: error });
+      }
+      throw new SourceTraversalError(`Could not resolve source root: ${sourceRoot}`, { cause: error });
     }
     if (!isWithinProject(realProjectRoot, realSourceRoot)) {
       throw new ConfigError(`Source root resolves outside the project: ${sourceRoot}`);
@@ -108,4 +127,10 @@ export async function findSourceFiles(
   }
 
   return matchingFiles;
+}
+
+function isMissingPath(error: unknown): boolean {
+  return error instanceof Error
+    && 'code' in error
+    && (error.code === 'ENOENT' || error.code === 'ENOTDIR');
 }

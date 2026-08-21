@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +8,7 @@ import {
   formatJsonReport,
   parseIstanbulCoverage,
   parseLcov,
+  SourceReadError,
   type AnalysisResult,
   type AnalyzeProjectOptions,
 } from '../../src/index.js';
@@ -294,5 +295,23 @@ describe('analyzeProject', () => {
       range: entry.range,
     })));
     await expect(analyzeProject(options)).resolves.toEqual(result);
+  });
+
+  it('wraps a source read failure with its project-relative path', async () => {
+    const temporaryProject = await mkdtemp(join(tmpdir(), 'crap4ts-source-read-'));
+    temporaryDirectories.push(temporaryProject);
+    await mkdir(join(temporaryProject, 'src'));
+    await writeFile(join(temporaryProject, 'src/unreadable.ts'), 'export function value() {}\n');
+    await chmod(join(temporaryProject, 'src/unreadable.ts'), 0o000);
+
+    const error = await analyzeProject({
+      projectRoot: temporaryProject,
+      sourceRoots: ['src'],
+      filters: [],
+      coverage: parseLcov(''),
+    }).catch((reason: unknown) => reason);
+
+    expect(error).toBeInstanceOf(SourceReadError);
+    expect(error).toHaveProperty('message', 'Could not read source file: src/unreadable.ts');
   });
 });
