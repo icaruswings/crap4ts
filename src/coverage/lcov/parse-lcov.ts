@@ -12,7 +12,7 @@ export function parseLcov(text: string): CoverageArtifact {
   for (const [index, record] of text.split(/\r?\n/).entries()) {
     const lineNumber = index + 1;
 
-    if (record.startsWith('SF') && !record.startsWith('SF:')) {
+    if (hasMalformedDelimiter(record, 'SF')) {
       throw invalid(lineNumber, 'SF record must begin with SF:');
     }
 
@@ -26,7 +26,7 @@ export function parseLcov(text: string): CoverageArtifact {
       continue;
     }
 
-    if (record.startsWith('DA') && !record.startsWith('DA:')) {
+    if (hasMalformedDelimiter(record, 'DA')) {
       throw invalid(lineNumber, 'DA record must begin with DA:');
     }
 
@@ -62,6 +62,14 @@ export function parseLcov(text: string): CoverageArtifact {
       .map(([sourcePath, lines]) => toLineCoverageFile(sourcePath, lines))
       .sort(compareFiles),
   };
+}
+
+function hasMalformedDelimiter(record: string, tag: 'SF' | 'DA'): boolean {
+  if (!record.startsWith(tag)) return false;
+
+  const delimiter = record[tag.length];
+  return delimiter === undefined
+    || (delimiter !== ':' && !/[A-Za-z0-9_]/.test(delimiter));
 }
 
 function parseSourcePath(record: string, lineNumber: number): string {

@@ -55,8 +55,10 @@ describe('parseLcov', () => {
   it.each([
     ['SF', 'SF record must begin with SF:'],
     ['SF=/workspace/src/file.ts', 'SF record must begin with SF:'],
+    ['SF|/workspace/src/file.ts', 'SF record must begin with SF:'],
     ['DA', 'DA record must begin with DA:'],
     ['DA=2,1', 'DA record must begin with DA:'],
+    ['DA|2,1', 'DA record must begin with DA:'],
   ])('rejects malformed required %s records', (record, message) => {
     expect(() => parseLcov(record)).toThrow(`line 1: ${message}`);
   });
@@ -64,6 +66,8 @@ describe('parseLcov', () => {
   it('ignores unrelated LCOV record types while still parsing SF and DA records', () => {
     const coverage = parseLcov([
       'TN:suite',
+      'SFT:extension-source-metadata',
+      'DATA:extension-line-metadata',
       'SF:src/file.ts',
       'FN:1,file',
       'FNDA:1,file',
