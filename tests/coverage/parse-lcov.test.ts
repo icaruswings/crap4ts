@@ -56,4 +56,28 @@ describe('parseLcov', () => {
   ])('rejects malformed required %s records', (record, message) => {
     expect(() => parseLcov(record)).toThrow(`line 1: ${message}`);
   });
+
+  it('rejects unsafe hit totals for duplicate lines within a record', () => {
+    const lcov = [
+      'SF:src/file.ts',
+      `DA:1,${Number.MAX_SAFE_INTEGER}`,
+      'DA:1,1',
+      'end_of_record',
+    ].join('\n');
+
+    expect(() => parseLcov(lcov)).toThrow('line 3: accumulated DA hit count must be a nonnegative safe integer');
+  });
+
+  it('rejects unsafe hit totals across duplicate normalized file records', () => {
+    const lcov = [
+      'SF:file:///workspace/src/file.ts',
+      `DA:1,${Number.MAX_SAFE_INTEGER}`,
+      'end_of_record',
+      'SF:/workspace/src/file.ts',
+      'DA:1,1',
+      'end_of_record',
+    ].join('\n');
+
+    expect(() => parseLcov(lcov)).toThrow('line 6: accumulated DA hit count must be a nonnegative safe integer');
+  });
 });

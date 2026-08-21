@@ -36,7 +36,7 @@ export function parseLcov(text: string): CoverageArtifact {
       }
 
       const { line, hits } = parseLineData(record, lineNumber);
-      currentLines.set(line, (currentLines.get(line) ?? 0) + hits);
+      currentLines.set(line, addHits(currentLines.get(line), hits, lineNumber));
       continue;
     }
 
@@ -45,7 +45,7 @@ export function parseLcov(text: string): CoverageArtifact {
         throw invalid(lineNumber, 'end_of_record requires an SF record');
       }
 
-      mergeFile(filesByPath, currentPath, currentLines);
+      mergeFile(filesByPath, currentPath, currentLines, lineNumber);
       currentPath = undefined;
       currentLines = undefined;
     }
@@ -111,7 +111,12 @@ function parseNonnegativeInteger(value: string, lineNumber: number, label: strin
   return parsed;
 }
 
-function mergeFile(filesByPath: Map<string, HitsByLine>, sourcePath: string, lines: HitsByLine): void {
+function mergeFile(
+  filesByPath: Map<string, HitsByLine>,
+  sourcePath: string,
+  lines: HitsByLine,
+  lineNumber: number,
+): void {
   const existingLines = filesByPath.get(sourcePath);
   if (existingLines === undefined) {
     filesByPath.set(sourcePath, lines);
@@ -119,8 +124,17 @@ function mergeFile(filesByPath: Map<string, HitsByLine>, sourcePath: string, lin
   }
 
   for (const [line, hits] of lines) {
-    existingLines.set(line, (existingLines.get(line) ?? 0) + hits);
+    existingLines.set(line, addHits(existingLines.get(line), hits, lineNumber));
   }
+}
+
+function addHits(existingHits: number | undefined, newHits: number, lineNumber: number): number {
+  const accumulatedHits = (existingHits ?? 0) + newHits;
+  if (!Number.isSafeInteger(accumulatedHits) || accumulatedHits < 0) {
+    throw invalid(lineNumber, 'accumulated DA hit count must be a nonnegative safe integer');
+  }
+
+  return accumulatedHits;
 }
 
 function toLineCoverageFile(sourcePath: string, hitsByLine: HitsByLine): LineCoverageFile {
