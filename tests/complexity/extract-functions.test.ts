@@ -70,6 +70,23 @@ class StaticOnly {
     ]);
   });
 
+  it('keeps owner names for class field functions and object accessors', () => {
+    const source = `class Widget {
+  handler = () => {};
+}
+
+const object = {
+  get value() { return 1; },
+  set value(next: number) {}
+};`;
+
+    expect(parseFunctions('src/owners.ts', source).map((fn) => fn.name)).toEqual([
+      'Widget.handler',
+      'object.value',
+      'object.value',
+    ]);
+  });
+
   it('records direct and indirect nested function bodies', () => {
     const source = `function outer() {
   const middle = () => {

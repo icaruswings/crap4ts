@@ -1,7 +1,4 @@
-import { resolve } from 'node:path';
-import * as ts from 'typescript/unstable/ast';
-import { createVirtualFileSystem } from 'typescript/unstable/fs';
-import { API } from 'typescript/unstable/sync';
+import * as ts from 'typescript';
 import type { SourcePosition, SourceRange } from '../model.js';
 
 export interface ParsedFunction {
@@ -14,14 +11,22 @@ export interface ParsedFunction {
   node: ts.FunctionLikeDeclaration;
 }
 
+type FunctionWithBody = ts.FunctionLikeDeclaration & { body: ts.FunctionBody };
+
 export function parseFunctions(source: string, sourceText: string): ParsedFunction[] {
-  const sourceFile = parseSourceFile(source, sourceText);
+  const sourceFile = ts.createSourceFile(
+    source,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    source.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
   const functions: ParsedFunction[] = [];
 
   const visit = (node: ts.Node): void => {
-    if (ts.isFunctionLikeDeclaration(node) && node.body !== undefined) {
-      const range = toRange(sourceFile, node.getStart(sourceFile), node.getEnd());
-      const bodyRange = toRange(sourceFile, node.body.getStart(sourceFile), node.body.getEnd());
+    if (hasFunctionBody(node)) {
+      const range = toRange(sourceFile, node.getStart(sourceFile), node.end);
+      const bodyRange = toRange(sourceFile, node.body.getStart(sourceFile), node.body.end);
       const start = range.start;
       const end = range.end;
 
@@ -36,7 +41,7 @@ export function parseFunctions(source: string, sourceText: string): ParsedFuncti
       });
     }
 
-    node.forEachChild(visit);
+    ts.forEachChild(node, visit);
   };
 
   visit(sourceFile);
@@ -50,33 +55,15 @@ export function parseFunctions(source: string, sourceText: string): ParsedFuncti
   return functions;
 }
 
-function parseSourceFile(source: string, sourceText: string): ts.SourceFile {
-  const fileName = resolve(source);
-  const api = new API({
-    cwd: process.cwd(),
-    fs: createVirtualFileSystem({ [fileName]: sourceText }),
-  });
-
-  try {
-    const snapshot = api.updateSnapshot({ openFiles: [fileName] });
-    const project = snapshot.getDefaultProjectForFile(fileName);
-    const sourceFile = project?.program.getSourceFile(fileName);
-
-    if (sourceFile === undefined) {
-      throw new Error(`TypeScript could not parse ${source}`);
-    }
-
-    return sourceFile;
-  } finally {
-    api.close();
-  }
-}
-
 function toRange(sourceFile: ts.SourceFile, start: number, end: number): SourceRange {
   return {
     start: toPosition(sourceFile, start),
     end: toPosition(sourceFile, end),
   };
+}
+
+function hasFunctionBody(node: ts.Node): node is FunctionWithBody {
+  return ts.isFunctionLike(node) && 'body' in node && node.body !== undefined;
 }
 
 function toPosition(sourceFile: ts.SourceFile, position: number): SourcePosition {
@@ -120,15 +107,16 @@ function getClassMemberName(
   node: ts.FunctionLikeDeclaration,
   sourceFile: ts.SourceFile,
 ): string | undefined {
-  const member = node.parent;
-  if (!ts.isClassDeclaration(member) && !ts.isClassExpression(member)) return undefined;
+  const member = ts.isPropertyDeclaration(node.parent) ? node.parent : node;
+  const classDeclaration = member.parent;
+  if (!ts.isClassDeclaration(classDeclaration) && !ts.isClassExpression(classDeclaration)) return undefined;
 
-  const className = member.name;
+  const className = classDeclaration.name;
   if (className === undefined || !ts.isIdentifier(className)) return undefined;
 
   if (ts.isConstructorDeclaration(node)) return `${className.text}.constructor`;
 
-  const memberName = getNodeName(node, sourceFile);
+  const memberName = getNodeName(member, sourceFile);
   return memberName === undefined ? undefined : `${className.text}.${memberName}`;
 }
 
@@ -142,8 +130,8 @@ function getObjectMemberName(
   node: ts.FunctionLikeDeclaration,
   sourceFile: ts.SourceFile,
 ): string | undefined {
-  const property = ts.isMethodDeclaration(node) ? node : node.parent;
-  if (!ts.isPropertyAssignment(property) && !ts.isMethodDeclaration(property)) return undefined;
+  const property = getContainingProperty(node);
+  if (property === undefined) return undefined;
 
   const object = property.parent;
   if (!ts.isObjectLiteralExpression(object)) return undefined;
@@ -157,9 +145,21 @@ function getObjectMemberName(
 }
 
 function getPropertyName(node: ts.FunctionLikeDeclaration, sourceFile: ts.SourceFile): string | undefined {
-  const property = ts.isMethodDeclaration(node) ? node : node.parent;
-  if (!ts.isPropertyAssignment(property) && !ts.isMethodDeclaration(property)) return undefined;
+  const property = getContainingProperty(node);
+  if (property === undefined) return undefined;
   return getNodeName(property, sourceFile);
+}
+
+function getContainingProperty(node: ts.FunctionLikeDeclaration): ts.Node | undefined {
+  if (
+    ts.isMethodDeclaration(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node)
+  ) {
+    return node;
+  }
+
+  return ts.isPropertyAssignment(node.parent) ? node.parent : undefined;
 }
 
 function getNodeName(node: ts.Node, sourceFile: ts.SourceFile): string | undefined {
