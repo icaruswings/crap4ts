@@ -1,6 +1,10 @@
 export { crapScore } from './scorer.js';
 export { analyzeProject } from './analysis/analyze-project.js';
 export type { AnalysisResult, AnalyzeProjectOptions } from './analysis/analyze-project.js';
+export { sortEntries } from './report/sort-entries.js';
+export { formatTextReport } from './report/format-text.js';
+export { formatJsonReport } from './report/format-json.js';
+export type { JsonReportInput } from './report/format-json.js';
 export { extractFunctions, parseFunctions } from './complexity/extract-functions.js';
 export type { ParsedFunction } from './complexity/extract-functions.js';
 export { measureComplexity } from './complexity/measure-complexity.js';
