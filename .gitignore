@@ -2,5 +2,5 @@ docs/superpowers/
 .worktrees/
 node_modules/
 dist/
-coverage/
+/coverage/
 .stryker-tmp/
