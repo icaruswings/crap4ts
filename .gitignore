@@ -1,2 +1,6 @@
 docs/superpowers/
 .worktrees/
+node_modules/
+dist/
+coverage/
+.stryker-tmp/
