@@ -66,7 +66,7 @@ function parseFile(rawPath: string, rawFile: unknown): StatementCoverageFile {
 function parseRange(value: unknown, path: string): SourceRange {
   const location = asRecord(value, path);
   const start = parsePosition(location.start, `${path}.start`);
-  const end = parsePosition(location.end, `${path}.end`);
+  const end = parsePosition(location.end, `${path}.end`, true);
 
   if (comparePositions(end, start) < 0) {
     throw new CoverageParseError(`${path}: end must not precede start`);
@@ -75,9 +75,12 @@ function parseRange(value: unknown, path: string): SourceRange {
   return { start, end };
 }
 
-function parsePosition(value: unknown, path: string): SourcePosition {
+function parsePosition(value: unknown, path: string, allowUnboundedColumn = false): SourcePosition {
   const position = asRecord(value, path);
   const line = asPositiveInteger(position.line, `${path}.line`);
+  if (allowUnboundedColumn && position.column === null) {
+    return { line, column: Number.MAX_SAFE_INTEGER };
+  }
   const zeroBasedColumn = asNonnegativeInteger(position.column, `${path}.column`);
 
   return { line, column: zeroBasedColumn + 1 };

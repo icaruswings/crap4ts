@@ -71,6 +71,25 @@ describe('parseIstanbulCoverage', () => {
     expect(() => parseIstanbulCoverage('{')).toThrow('Istanbul coverage JSON');
   });
 
+  it('accepts the null end column emitted for an unbounded V8 statement range', () => {
+    const coverage = parseIstanbulCoverage(JSON.stringify({
+      'src/example.ts': {
+        statementMap: {
+          0: {
+            start: { line: 2, column: 4 },
+            end: { line: 3, column: null },
+          },
+        },
+        s: { 0: 1 },
+      },
+    }));
+
+    expect(coverage.files[0]?.statements[0]?.range).toEqual({
+      start: { line: 2, column: 5 },
+      end: { line: 3, column: 9007199254740991 },
+    });
+  });
+
   it.each([
     ['missingStatementMap', 'src/missing-map.ts.statementMap'],
     ['counterWithoutLocation', 'src/no-location.ts.s.0'],

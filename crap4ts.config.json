@@ -1,0 +1,7 @@
+{
+  "sourceRoots": ["src"],
+  "coverageCommand": "npm run coverage",
+  "coveragePath": "coverage/coverage-final.json",
+  "coverageFormat": "istanbul",
+  "coverageDirectory": "coverage"
+}

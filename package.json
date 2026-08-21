@@ -3,8 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20.19" },
-  "bin": { "crap4ts": "./dist/cli/main.js" },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "bin": {
+    "crap4ts": "./dist/cli/main.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,12 +19,16 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "self-check": "npm run build && node dist/cli/main.js",
+    "mutation": "stryker run"
   },
   "dependencies": {
     "typescript": "6.0.3"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.2.0",
     "@vitest/coverage-v8": "4.1.11",
     "vitest": "4.1.11"
