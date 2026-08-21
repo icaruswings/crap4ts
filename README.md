@@ -6,7 +6,7 @@ This document follows Simplified Technical English.
 
 ## Install and build
 
-The package requires Node.js 20.19 or later.
+The full toolchain requires Node.js 22.18 or later in the Node.js 22 release line. It also supports Node.js 24.11 or later.
 
 ```sh
 npm install
@@ -47,7 +47,9 @@ Generated mode is the default. The CLI removes the configured artifact, runs the
 crap4ts
 ```
 
-The command inherits the terminal input and output streams. A failed coverage command stops the analysis with exit code 1.
+In text mode, the coverage command inherits the terminal input and output streams. In JSON mode, the CLI routes coverage stdout to stderr so report stdout stays parseable.
+
+A failed coverage command stops the analysis with exit code 1.
 
 The CLI does not guess a test runner, command, path, or format. Run the project coverage command yourself when the setup fails. Confirm that it creates the configured artifact.
 
@@ -171,6 +173,7 @@ The skill does not authorize an agent to edit tests or source files. Give that i
 ```sh
 npm test
 npm run build
+npx tsc -p tsconfig.json --noEmit
 npm run coverage
 npm run self-check
 npm run mutation

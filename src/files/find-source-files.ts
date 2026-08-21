@@ -81,7 +81,12 @@ export async function findSourceFiles(
       throw new ConfigError(`Source root resolves outside the project: ${sourceRoot}`);
     }
 
-    const realSourceRoot = await realpath(resolvedSourceRoot);
+    let realSourceRoot: string;
+    try {
+      realSourceRoot = await realpath(resolvedSourceRoot);
+    } catch (error) {
+      throw new ConfigError(`Could not resolve source root: ${sourceRoot}`, { cause: error });
+    }
     if (!isWithinProject(realProjectRoot, realSourceRoot)) {
       throw new ConfigError(`Source root resolves outside the project: ${sourceRoot}`);
     }

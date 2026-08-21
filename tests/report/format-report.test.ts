@@ -81,6 +81,25 @@ describe('formatTextReport', () => {
 });
 
 describe('formatJsonReport', () => {
+  it('orders matching diagnostic codes by source path', () => {
+    const report = JSON.parse(formatJsonReport({
+      toolVersion: TOOL_VERSION,
+      coverage: { format: 'lcov', kind: 'line', path: 'coverage/lcov.info' },
+      result: {
+        entries: [],
+        diagnostics: [
+          { code: 'NO_TRACKED_COVERAGE', message: 'same', source: 'src/zeta.ts' },
+          { code: 'NO_TRACKED_COVERAGE', message: 'same', source: 'src/alpha.ts' },
+        ],
+      },
+    })) as { diagnostics: Array<{ source: string }> };
+
+    expect(report.diagnostics.map(({ source }) => source)).toEqual([
+      'src/alpha.ts',
+      'src/zeta.ts',
+    ]);
+  });
+
   it('renders a complete byte-stable report with full numbers and sorted diagnostics', () => {
     const input = {
       toolVersion: TOOL_VERSION,

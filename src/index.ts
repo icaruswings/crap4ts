@@ -23,6 +23,7 @@ export type { CliArgs } from './cli/parse-args.js';
 export { resolveOptions } from './cli/resolve-options.js';
 export { prepareCoverage } from './cli/prepare-coverage.js';
 export { runCoverageCommand } from './cli/run-coverage.js';
+export type { RunCoverageOptions } from './cli/run-coverage.js';
 export { runCli } from './cli/main.js';
 export type { CliIo } from './cli/main.js';
 export type {

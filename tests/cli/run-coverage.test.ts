@@ -48,11 +48,28 @@ describe('runCoverageCommand', () => {
       return childProcessThat('close', 0, null);
     };
 
-    await runCoverageCommand(command, projectRoot, spawnCommand);
+    await runCoverageCommand(command, projectRoot, {}, spawnCommand);
 
     expect(calls).toEqual([{
       command,
       options: { cwd: projectRoot, shell: true, stdio: 'inherit' },
+    }]);
+  });
+
+  it('routes coverage stdout to stderr when JSON output must stay clean', async () => {
+    const projectRoot = await makeProject();
+    const command = 'npm run coverage';
+    const calls: Array<{ command: string; options: SpawnOptions }> = [];
+    const spawnCommand = (suppliedCommand: string, options: SpawnOptions): ChildProcess => {
+      calls.push({ command: suppliedCommand, options });
+      return childProcessThat('close', 0, null);
+    };
+
+    await runCoverageCommand(command, projectRoot, { stdout: 'stderr' }, spawnCommand);
+
+    expect(calls).toEqual([{
+      command,
+      options: { cwd: projectRoot, shell: true, stdio: ['inherit', 2, 'inherit'] },
     }]);
   });
 
@@ -71,7 +88,7 @@ describe('runCoverageCommand', () => {
     const command = 'missing-coverage-command';
     const spawnCommand = (): ChildProcess => childProcessThat('error', null, null);
 
-    const error = await runCoverageCommand(command, projectRoot, spawnCommand).catch(
+    const error = await runCoverageCommand(command, projectRoot, {}, spawnCommand).catch(
       (reason: unknown) => reason,
     );
 
@@ -84,7 +101,7 @@ describe('runCoverageCommand', () => {
     const command = 'npm run coverage';
     const spawnCommand = (): ChildProcess => childProcessThat('close', null, 'SIGTERM');
 
-    const error = await runCoverageCommand(command, projectRoot, spawnCommand).catch(
+    const error = await runCoverageCommand(command, projectRoot, {}, spawnCommand).catch(
       (reason: unknown) => reason,
     );
 

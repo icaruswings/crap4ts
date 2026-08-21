@@ -1,10 +1,14 @@
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { access, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { fileURLToPath } from 'node:url';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { runCli, type CliIo } from '../../src/cli/main.js';
 
 const temporaryDirectories: string[] = [];
+const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
+const builtCli = join(repositoryRoot, 'dist/cli/main.js');
 const sourceText = `export function risk(flag: boolean) {
   if (flag) return 1;
   return 0;
@@ -75,6 +79,26 @@ function nodeExitCommand(status: number): string {
   return `${JSON.stringify(process.execPath)} -e "process.exit(${status})"`;
 }
 
+function runProcess(
+  executable: string,
+  args: string[],
+  cwd: string,
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(executable, args, { cwd, encoding: 'utf8' }, (error, stdout, stderr) => {
+      if (error !== null) {
+        reject(Object.assign(error, { stdout, stderr }));
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+beforeAll(async () => {
+  await runProcess('npm', ['run', 'build'], repositoryRoot);
+});
+
 afterEach(async () => {
   await Promise.all(
     temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true })),
@@ -82,6 +106,17 @@ afterEach(async () => {
 });
 
 describe('runCli', () => {
+  it('runs the built entry point when Node receives a symlink path', async () => {
+    const projectRoot = await makeProject();
+    const linkedCli = join(projectRoot, 'linked-crap4ts.mjs');
+    await symlink(builtCli, linkedCli, 'file');
+
+    const result = await runProcess(process.execPath, [linkedCli, '--help'], projectRoot);
+
+    expect(result.stdout).toContain('Usage: crap4ts [filters...] [options]');
+    expect(result.stderr).toBe('');
+  });
+
   it('prints usage and returns zero for --help', async () => {
     const projectRoot = await makeProject();
     const output = captureIo();
@@ -173,6 +208,30 @@ await writeFile('coverage/coverage-final.json', ${JSON.stringify(generatedCovera
     expect(output.stderr()).toBe('');
   });
 
+  it('keeps generated JSON stdout parseable when the coverage command writes to stdout', async () => {
+    const projectRoot = await makeProject();
+    const generatedCoverage = istanbulCoverage();
+    await writeFile(join(projectRoot, 'generate-coverage.mjs'), `import { mkdir, writeFile } from 'node:fs/promises';
+console.log('coverage command chatter');
+await mkdir('coverage', { recursive: true });
+await writeFile('coverage/coverage-final.json', ${JSON.stringify(generatedCoverage)});
+`);
+    await writeConfig(projectRoot, {
+      sourceRoots: ['src'],
+      coverageCommand: 'node generate-coverage.mjs',
+      coveragePath: 'coverage/coverage-final.json',
+      coverageFormat: 'istanbul',
+    });
+
+    const result = await runProcess(process.execPath, [builtCli, '--json'], projectRoot);
+
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      entries: [{ name: 'risk' }],
+    });
+    expect(result.stdout).not.toContain('coverage command chatter');
+    expect(result.stderr).toContain('coverage command chatter');
+  });
+
   it('returns one when the coverage command fails', async () => {
     const projectRoot = await makeProject();
     const output = captureIo();
@@ -221,6 +280,23 @@ await writeFile('coverage/coverage-final.json', ${JSON.stringify(generatedCovera
     expect(output.stdout()).toContain('N/A');
     expect(output.stderr()).toContain('NO_TRACKED_COVERAGE');
     expect(output.stderr()).toContain('Function "risk" has no tracked statement coverage locations');
+  });
+
+  it('returns two with a clean error when a configured source root does not exist', async () => {
+    const projectRoot = await makeProject();
+    const output = captureIo();
+    await writeConfig(projectRoot, {
+      sourceRoots: ['missing-src'],
+      coveragePath: 'coverage/coverage-final.json',
+      coverageFormat: 'istanbul',
+    });
+    await writeCoverage(projectRoot, 'coverage/coverage-final.json', istanbulCoverage());
+
+    const status = await runCli(['--use-existing-coverage'], output.io, projectRoot);
+
+    expect(status).toBe(2);
+    expect(output.stdout()).toBe('');
+    expect(output.stderr()).toBe('Error: Could not resolve source root: missing-src\n');
   });
 
   it('writes exactly one JSON object to stdout and keeps diagnostic prose inside it', async () => {

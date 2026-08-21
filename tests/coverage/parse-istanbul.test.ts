@@ -84,7 +84,11 @@ describe('parseIstanbulCoverage', () => {
       },
     }));
 
-    expect(coverage.files[0]?.statements[0]?.range).toEqual({
+    const file = coverage.files[0];
+    expect(file?.kind).toBe('statement');
+    if (file?.kind !== 'statement') throw new Error('Expected statement coverage');
+
+    expect(file.statements[0]?.range).toEqual({
       start: { line: 2, column: 5 },
       end: { line: 3, column: 9007199254740991 },
     });

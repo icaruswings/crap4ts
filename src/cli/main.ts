@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
+import { realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { analyzeProject } from '../analysis/analyze-project.js';
 import { loadConfig } from '../config/load-config.js';
 import { parseIstanbulCoverage } from '../coverage/istanbul/parse-istanbul.js';
@@ -102,7 +103,9 @@ export async function runCli(
 async function generateCoverage(options: ResolvedOptions, projectRoot: string): Promise<void> {
   if (options.action !== 'analyze' || options.coverageMode === 'existing') return;
   await prepareCoverage(projectRoot, options.coveragePath, options.coverageDirectory);
-  await runCoverageCommand(options.coverageCommand, projectRoot);
+  await runCoverageCommand(options.coverageCommand, projectRoot, {
+    stdout: options.json ? 'stderr' : 'inherit',
+  });
 }
 
 async function readCoverage(
@@ -132,6 +135,14 @@ function formatDiagnostic(diagnostic: Diagnostic): string {
 }
 
 const entryScript = process.argv[1];
-if (entryScript !== undefined && import.meta.url === pathToFileURL(resolve(entryScript)).href) {
+if (entryScript !== undefined && isEntryScript(import.meta.url, entryScript)) {
   process.exitCode = await runCli(process.argv.slice(2));
+}
+
+function isEntryScript(moduleUrl: string, entryScript: string): boolean {
+  try {
+    return realpathSync(fileURLToPath(moduleUrl)) === realpathSync(resolve(entryScript));
+  } catch {
+    return false;
+  }
 }

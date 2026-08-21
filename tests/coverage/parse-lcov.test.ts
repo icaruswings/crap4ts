@@ -45,6 +45,8 @@ describe('parseLcov', () => {
     const malformed = await fixture('lcov-malformed.info');
     const records = malformed.split('\n\n');
     const record = records[recordIndex];
+    expect(record).toBeDefined();
+    if (record === undefined) throw new Error(`Missing malformed LCOV fixture ${recordIndex}`);
 
     expect(() => parseLcov(record)).toThrow(CoverageParseError);
     expect(() => parseLcov(record)).toThrow(`line ${lineNumber}: ${message}`);

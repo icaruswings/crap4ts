@@ -4,6 +4,10 @@ import { CoverageCommandError } from '../errors.js';
 
 type SpawnCoverageCommand = (command: string, options: SpawnOptions) => ChildProcess;
 
+export interface RunCoverageOptions {
+  stdout?: 'inherit' | 'stderr';
+}
+
 function startupError(command: string, cause: unknown): CoverageCommandError {
   return new CoverageCommandError(`Coverage command could not start: ${command}`, { cause });
 }
@@ -11,12 +15,16 @@ function startupError(command: string, cause: unknown): CoverageCommandError {
 export function runCoverageCommand(
   command: string,
   projectRoot: string,
+  options: RunCoverageOptions = {},
   spawnCommand: SpawnCoverageCommand = spawn,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     let child: ChildProcess;
     try {
-      child = spawnCommand(command, { cwd: projectRoot, shell: true, stdio: 'inherit' });
+      const stdio: SpawnOptions['stdio'] = options.stdout === 'stderr'
+        ? ['inherit', 2, 'inherit']
+        : 'inherit';
+      child = spawnCommand(command, { cwd: projectRoot, shell: true, stdio });
     } catch (error) {
       reject(startupError(command, error));
       return;
