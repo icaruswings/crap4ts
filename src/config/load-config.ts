@@ -19,6 +19,14 @@ const CONFIG_KEYS = new Set([
   'coverageDirectory',
 ]);
 
+type OptionalConfig = Omit<ProjectConfig, 'sourceRoots'>;
+type ParsedOptionalConfig = Required<OptionalConfig>;
+
+interface OptionalFieldDescriptor<Key extends keyof ParsedOptionalConfig> {
+  key: Key;
+  parser: (value: unknown) => ParsedOptionalConfig[Key];
+}
+
 function isMissingFile(error: unknown): boolean {
   return error instanceof Error && 'code' in error && error.code === 'ENOENT';
 }
@@ -52,6 +60,20 @@ function coverageFormat(value: unknown): 'lcov' | 'istanbul' {
   return value;
 }
 
+function optionalField<Key extends keyof ParsedOptionalConfig>(
+  key: Key,
+  parser: (value: unknown) => ParsedOptionalConfig[Key],
+): OptionalFieldDescriptor<Key> {
+  return { key, parser };
+}
+
+const OPTIONAL_FIELDS = [
+  optionalField('coverageCommand', (value) => nonEmptyString(value, 'coverageCommand')),
+  optionalField('coveragePath', (value) => relativePath(value, 'coveragePath')),
+  optionalField('coverageFormat', coverageFormat),
+  optionalField('coverageDirectory', (value) => relativePath(value, 'coverageDirectory')),
+] as const;
+
 function parseConfig(contents: string): unknown {
   try {
     return JSON.parse(contents) as unknown;
@@ -60,30 +82,46 @@ function parseConfig(contents: string): unknown {
   }
 }
 
-function validateConfig(value: unknown): ProjectConfig {
+function configRecord(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new ConfigError(`${CONFIG_FILENAME} must contain an object`);
   }
-  const record = value as Record<string, unknown>;
+
+  return value as Record<string, unknown>;
+}
+
+function rejectUnknownKeys(record: Record<string, unknown>): void {
   const unknownKey = Object.keys(record).find((key) => !CONFIG_KEYS.has(key));
   if (unknownKey !== undefined) {
     throw new ConfigError(`Unknown configuration key: ${unknownKey}`);
   }
+}
 
-  const config: ProjectConfig = { sourceRoots: sourceRoots(record.sourceRoots) };
-  if ('coverageCommand' in record) {
-    config.coverageCommand = nonEmptyString(record.coverageCommand, 'coverageCommand');
+function readOptionalField<Key extends keyof ParsedOptionalConfig>(
+  record: Record<string, unknown>,
+  config: Partial<ParsedOptionalConfig>,
+  descriptor: OptionalFieldDescriptor<Key>,
+): void {
+  if (descriptor.key in record) {
+    config[descriptor.key] = descriptor.parser(record[descriptor.key]);
   }
-  if ('coveragePath' in record) {
-    config.coveragePath = relativePath(record.coveragePath, 'coveragePath');
-  }
-  if ('coverageFormat' in record) {
-    config.coverageFormat = coverageFormat(record.coverageFormat);
-  }
-  if ('coverageDirectory' in record) {
-    config.coverageDirectory = relativePath(record.coverageDirectory, 'coverageDirectory');
+}
+
+function readOptionalFields(record: Record<string, unknown>): OptionalConfig {
+  const config: Partial<ParsedOptionalConfig> = {};
+  for (const descriptor of OPTIONAL_FIELDS) {
+    readOptionalField(record, config, descriptor);
   }
   return config;
+}
+
+function validateConfig(value: unknown): ProjectConfig {
+  const record = configRecord(value);
+  rejectUnknownKeys(record);
+  return {
+    sourceRoots: sourceRoots(record.sourceRoots),
+    ...readOptionalFields(record),
+  };
 }
 
 export async function loadConfig(projectRoot: string): Promise<ProjectConfig> {

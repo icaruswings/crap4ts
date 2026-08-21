@@ -41,7 +41,7 @@ describe('runCoverageCommand', () => {
 
   it('passes the supplied command unchanged with project cwd, shell, and inherited stdio', async () => {
     const projectRoot = await makeProject();
-    const command = 'npm run coverage -- --runInBand';
+    const command = 'pnpm coverage -- --runInBand';
     const calls: Array<{ command: string; options: SpawnOptions }> = [];
     const spawnCommand = (suppliedCommand: string, options: SpawnOptions): ChildProcess => {
       calls.push({ command: suppliedCommand, options });
@@ -75,7 +75,7 @@ describe('runCoverageCommand', () => {
 
   it('routes coverage stdout to stderr when JSON output must stay clean', async () => {
     const projectRoot = await makeProject();
-    const command = 'npm run coverage';
+    const command = 'pnpm coverage';
     const calls: Array<{ command: string; options: SpawnOptions }> = [];
     const spawnCommand = (suppliedCommand: string, options: SpawnOptions): ChildProcess => {
       calls.push({ command: suppliedCommand, options });
@@ -115,7 +115,7 @@ describe('runCoverageCommand', () => {
 
   it('rejects a signal exit with CoverageCommandError', async () => {
     const projectRoot = await makeProject();
-    const command = 'npm run coverage';
+    const command = 'pnpm coverage';
     const spawnCommand = (): ChildProcess => childProcessThat('close', null, 'SIGTERM');
 
     const error = await runCoverageCommand(command, projectRoot, {}, spawnCommand).catch(

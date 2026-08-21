@@ -4,64 +4,97 @@ import type { CoverageArtifact, LineCoverageFile } from '../model.js';
 
 type HitsByLine = Map<number, number>;
 
+interface LcovState {
+  filesByPath: Map<string, HitsByLine>;
+  currentPath?: string;
+  currentLines?: HitsByLine;
+}
+
+type RecordKind = 'source' | 'line' | 'end' | 'other';
+
+const PREFIXED_RECORD_KINDS: readonly (readonly [string, RecordKind])[] = [
+  ['SF:', 'source'],
+  ['DA:', 'line'],
+];
+
 export function parseLcov(text: string): CoverageArtifact {
-  const filesByPath = new Map<string, HitsByLine>();
-  let currentPath: string | undefined;
-  let currentLines: HitsByLine | undefined;
+  const state: LcovState = { filesByPath: new Map() };
+  const records = text.split(/\r?\n/);
 
-  for (const [index, record] of text.split(/\r?\n/).entries()) {
-    const lineNumber = index + 1;
-
-    if (hasMalformedDelimiter(record, 'SF')) {
-      throw invalid(lineNumber, 'SF record must begin with SF:');
-    }
-
-    if (record.startsWith('SF:')) {
-      if (currentPath !== undefined) {
-        throw invalid(lineNumber, 'SF record requires end_of_record for the preceding source file');
-      }
-
-      currentPath = parseSourcePath(record, lineNumber);
-      currentLines = new Map();
-      continue;
-    }
-
-    if (hasMalformedDelimiter(record, 'DA')) {
-      throw invalid(lineNumber, 'DA record must begin with DA:');
-    }
-
-    if (record.startsWith('DA:')) {
-      if (currentLines === undefined) {
-        throw invalid(lineNumber, 'DA record requires an SF record');
-      }
-
-      const { line, hits } = parseLineData(record, lineNumber);
-      currentLines.set(line, addHits(currentLines.get(line), hits, lineNumber));
-      continue;
-    }
-
-    if (record === 'end_of_record') {
-      if (currentPath === undefined || currentLines === undefined) {
-        throw invalid(lineNumber, 'end_of_record requires an SF record');
-      }
-
-      mergeFile(filesByPath, currentPath, currentLines, lineNumber);
-      currentPath = undefined;
-      currentLines = undefined;
-    }
+  for (const [index, record] of records.entries()) {
+    applyRecord(state, record, index + 1);
   }
 
-  if (currentPath !== undefined) {
-    throw invalid(text.split(/\r?\n/).length, 'missing end_of_record');
+  if (state.currentPath !== undefined) {
+    throw invalid(records.length, 'missing end_of_record');
   }
 
   return {
     format: 'lcov',
     kind: 'line',
-    files: [...filesByPath]
+    files: [...state.filesByPath]
       .map(([sourcePath, lines]) => toLineCoverageFile(sourcePath, lines))
       .sort(compareFiles),
   };
+}
+
+function applyRecord(state: LcovState, record: string, lineNumber: number): void {
+  switch (recordKind(record, lineNumber)) {
+    case 'source':
+      startSource(state, record, lineNumber);
+      return;
+    case 'line':
+      addLine(state, record, lineNumber);
+      return;
+    case 'end':
+      endRecord(state, lineNumber);
+      return;
+    case 'other':
+      return;
+  }
+}
+
+function recordKind(record: string, lineNumber: number): RecordKind {
+  assertValidDelimiter(record, 'SF', lineNumber);
+  assertValidDelimiter(record, 'DA', lineNumber);
+  return prefixedRecordKind(record) ?? (record === 'end_of_record' ? 'end' : 'other');
+}
+
+function assertValidDelimiter(record: string, tag: 'SF' | 'DA', lineNumber: number): void {
+  if (!hasMalformedDelimiter(record, tag)) return;
+  throw invalid(lineNumber, `${tag} record must begin with ${tag}:`);
+}
+
+function prefixedRecordKind(record: string): RecordKind | undefined {
+  return PREFIXED_RECORD_KINDS.find(([prefix]) => record.startsWith(prefix))?.[1];
+}
+
+function startSource(state: LcovState, record: string, lineNumber: number): void {
+  if (state.currentPath !== undefined) {
+    throw invalid(lineNumber, 'SF record requires end_of_record for the preceding source file');
+  }
+
+  state.currentPath = parseSourcePath(record, lineNumber);
+  state.currentLines = new Map();
+}
+
+function addLine(state: LcovState, record: string, lineNumber: number): void {
+  if (state.currentLines === undefined) {
+    throw invalid(lineNumber, 'DA record requires an SF record');
+  }
+
+  const { line, hits } = parseLineData(record, lineNumber);
+  state.currentLines.set(line, addHits(state.currentLines.get(line), hits, lineNumber));
+}
+
+function endRecord(state: LcovState, lineNumber: number): void {
+  if (state.currentPath === undefined || state.currentLines === undefined) {
+    throw invalid(lineNumber, 'end_of_record requires an SF record');
+  }
+
+  mergeFile(state.filesByPath, state.currentPath, state.currentLines, lineNumber);
+  delete state.currentPath;
+  delete state.currentLines;
 }
 
 function hasMalformedDelimiter(record: string, tag: 'SF' | 'DA'): boolean {

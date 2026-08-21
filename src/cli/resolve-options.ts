@@ -34,10 +34,8 @@ function requiredValue<T>(value: T | undefined, name: string): T {
   return value;
 }
 
-export function resolveOptions(config: ProjectConfig, args: CliArgs): ResolvedOptions {
-  if (args.help) return { action: 'help' };
-
-  const common: AnalyzeOptions = {
+function commonOptions(config: ProjectConfig, args: CliArgs): AnalyzeOptions {
+  return {
     action: 'analyze',
     sourceRoots: [...(args.sourceRoots ?? config.sourceRoots)],
     filters: [...args.filters],
@@ -45,10 +43,17 @@ export function resolveOptions(config: ProjectConfig, args: CliArgs): ResolvedOp
     coverageFormat: requiredValue(args.coverageFormat ?? config.coverageFormat, 'coverageFormat'),
     json: args.json,
   };
-  if (args.useExistingCoverage) {
-    return { ...common, coverageMode: 'existing' };
-  }
+}
 
+function existingOptions(common: AnalyzeOptions): ExistingCoverageOptions {
+  return { ...common, coverageMode: 'existing' };
+}
+
+function generatedOptions(
+  config: ProjectConfig,
+  args: CliArgs,
+  common: AnalyzeOptions,
+): GeneratedCoverageOptions {
   const generated: GeneratedCoverageOptions = {
     ...common,
     coverageMode: 'generated',
@@ -60,4 +65,12 @@ export function resolveOptions(config: ProjectConfig, args: CliArgs): ResolvedOp
   const coverageDirectory = args.coverageDirectory ?? config.coverageDirectory;
   if (coverageDirectory !== undefined) generated.coverageDirectory = coverageDirectory;
   return generated;
+}
+
+export function resolveOptions(config: ProjectConfig, args: CliArgs): ResolvedOptions {
+  if (args.help) return { action: 'help' };
+
+  const common = commonOptions(config, args);
+  if (args.useExistingCoverage) return existingOptions(common);
+  return generatedOptions(config, args, common);
 }

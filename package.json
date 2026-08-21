@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.8.1",
   "engines": {
     "node": ">=20.19"
   },
@@ -27,7 +28,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "self-check": "npm run build && node dist/cli/main.js",
+    "self-check": "pnpm build && node dist/cli/main.js",
     "mutation": "stryker run"
   },
   "dependencies": {

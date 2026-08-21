@@ -96,7 +96,7 @@ function runProcess(
 }
 
 beforeAll(async () => {
-  await runProcess('npm', ['run', 'build'], repositoryRoot);
+  await runProcess('pnpm', ['build'], repositoryRoot);
 });
 
 afterEach(async () => {

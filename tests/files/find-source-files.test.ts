@@ -69,6 +69,15 @@ describe('findSourceFiles', () => {
     await expect(findSourceFiles(projectRoot, ['src'], [])).resolves.toEqual(['src/kept.ts']);
   });
 
+  it('ignores file symlinks while walking a source root', async () => {
+    const projectRoot = await makeProject();
+    await writeProjectFile(projectRoot, 'src/kept.ts');
+    await writeProjectFile(projectRoot, 'shared/linked.ts');
+    await symlink(join(projectRoot, 'shared/linked.ts'), join(projectRoot, 'src/linked.ts'), 'file');
+
+    await expect(findSourceFiles(projectRoot, ['src'], [])).resolves.toEqual(['src/kept.ts']);
+  });
+
   it('rejects source roots outside the project', async () => {
     const projectRoot = await makeProject();
 

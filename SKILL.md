@@ -14,7 +14,7 @@ Inspect the project's source roots, test scripts, and existing coverage output. 
 ```json
 {
   "sourceRoots": ["src"],
-  "coverageCommand": "npm run coverage",
+  "coverageCommand": "pnpm coverage",
   "coveragePath": "coverage/coverage-final.json",
   "coverageFormat": "istanbul",
   "coverageDirectory": "coverage"
@@ -56,6 +56,16 @@ Add `--json` when exact scores, source ranges, or structured diagnostics matter.
 ## Read the result
 
 The text report ranks numeric CRAP scores from highest to lowest. A high score combines complex control flow with low coverage.
+
+Use Uncle Bob's published bands as guidance:
+
+| CRAP score | Interpretation |
+| --- | --- |
+| 1-5 | Low. The function is clean. |
+| 5-30 | Moderate. Consider adding tests or refactoring. |
+| 30+ | High. The function is complex and under-tested. |
+
+The published bands overlap at 5 and 30. Treat them as approximate risk guidance. They are not pass/fail thresholds and do not change the exit code. Do not refactor or add tests unless the user gives a separate instruction.
 
 Treat `N/A` as missing evidence. It does not mean zero coverage or a low-risk function.
 

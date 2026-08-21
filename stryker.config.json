@@ -1,10 +1,22 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
   "mutate": [
     "src/scorer.ts",
     "src/complexity/**/*.ts",
     "src/coverage/**/*.ts"
+  ],
+  "testFiles": [
+    "tests/scorer.test.ts",
+    "tests/analysis/**/*.test.ts",
+    "tests/cli/**/*.test.ts",
+    "tests/complexity/**/*.test.ts",
+    "tests/config/**/*.test.ts",
+    "tests/coverage/**/*.test.ts",
+    "tests/files/**/*.test.ts",
+    "tests/paths/**/*.test.ts",
+    "tests/report/**/*.test.ts"
   ],
   "reporters": ["clear-text", "progress"],
   "coverageAnalysis": "perTest",

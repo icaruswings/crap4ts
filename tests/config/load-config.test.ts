@@ -28,7 +28,7 @@ describe('loadConfig', () => {
     const projectRoot = await temporaryProject();
     await writeConfig(projectRoot, {
       sourceRoots: ['src', 'packages/core/src'],
-      coverageCommand: 'npm test -- --coverage',
+      coverageCommand: 'pnpm test -- --coverage',
       coveragePath: 'coverage/lcov.info',
       coverageFormat: 'lcov',
       coverageDirectory: 'coverage',
@@ -36,7 +36,7 @@ describe('loadConfig', () => {
 
     await expect(loadConfig(projectRoot)).resolves.toEqual({
       sourceRoots: ['src', 'packages/core/src'],
-      coverageCommand: 'npm test -- --coverage',
+      coverageCommand: 'pnpm test -- --coverage',
       coveragePath: 'coverage/lcov.info',
       coverageFormat: 'lcov',
       coverageDirectory: 'coverage',
@@ -50,6 +50,15 @@ describe('loadConfig', () => {
     await writeConfig(parentRoot, { sourceRoots: ['parent-src'] });
 
     await expect(loadConfig(projectRoot)).resolves.toEqual({ sourceRoots: ['src'] });
+  });
+
+  it('omits optional properties that are not configured', async () => {
+    const projectRoot = await temporaryProject();
+    await writeConfig(projectRoot, { sourceRoots: ['src'] });
+
+    const config = await loadConfig(projectRoot);
+
+    expect(Object.keys(config)).toEqual(['sourceRoots']);
   });
 
   it('rejects malformed JSON', async () => {

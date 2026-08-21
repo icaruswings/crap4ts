@@ -6,7 +6,7 @@ import type { ProjectConfig } from '../../src/config/load-config.js';
 
 const completeConfig: ProjectConfig = {
   sourceRoots: ['configured-src'],
-  coverageCommand: 'npm run configured-coverage',
+  coverageCommand: 'pnpm configured-coverage',
   coveragePath: 'coverage/configured.json',
   coverageFormat: 'istanbul',
   coverageDirectory: 'configured-coverage',
@@ -125,7 +125,7 @@ describe('resolveOptions', () => {
       coverageMode: 'generated',
       sourceRoots: ['configured-src'],
       filters: [],
-      coverageCommand: 'npm run configured-coverage',
+      coverageCommand: 'pnpm configured-coverage',
       coveragePath: 'coverage/configured.json',
       coverageFormat: 'istanbul',
       coverageDirectory: 'configured-coverage',

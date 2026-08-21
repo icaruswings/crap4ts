@@ -13,6 +13,9 @@ export interface JsonReportInput {
   result: AnalysisResult;
 }
 
+type SortValue = string | number;
+type DiagnosticSortKey = readonly [string, string, number, number, string];
+
 export function formatJsonReport(input: JsonReportInput): string {
   const report = {
     schemaVersion: 1,
@@ -47,13 +50,32 @@ function toJsonEntry(entry: CrapEntry) {
 }
 
 function compareDiagnostics(left: Diagnostic, right: Diagnostic): number {
-  return (
-    compareText(left.code, right.code) ||
-    compareText(left.source ?? '', right.source ?? '') ||
-    (left.range?.start.line ?? 0) - (right.range?.start.line ?? 0) ||
-    (left.range?.start.column ?? 0) - (right.range?.start.column ?? 0) ||
-    compareText(left.message, right.message)
-  );
+  return compareSortKeys(diagnosticSortKey(left), diagnosticSortKey(right));
+}
+
+function diagnosticSortKey(value: Diagnostic): DiagnosticSortKey {
+  return [
+    value.code,
+    value.source ?? '',
+    value.range?.start.line ?? 0,
+    value.range?.start.column ?? 0,
+    value.message,
+  ];
+}
+
+function compareSortKeys(left: readonly SortValue[], right: readonly SortValue[]): number {
+  for (let index = 0; index < left.length; index += 1) {
+    const order = compareSortValue(left[index]!, right[index]!);
+    if (order !== 0) return order;
+  }
+  return 0;
+}
+
+function compareSortValue(left: SortValue, right: SortValue): number {
+  if (typeof left === 'string' && typeof right === 'string') {
+    return compareText(left, right);
+  }
+  return (left as number) - (right as number);
 }
 
 function compareText(left: string, right: string): number {

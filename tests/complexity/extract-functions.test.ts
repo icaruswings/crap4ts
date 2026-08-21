@@ -97,6 +97,39 @@ const object = {
     ]);
   });
 
+  it('names computed class and object members and falls back for anonymous functions', () => {
+    const source = `const key = 'key';
+class Widget {
+  constructor() {}
+  handler = () => {};
+  get value() { return 1; }
+  set value(next: number) {}
+  [key]() {}
+}
+
+const object = {
+  run() {},
+  get value() { return 1; },
+  set value(next: number) {},
+  [key]: () => {},
+};
+
+[1].map(function () {});`;
+
+    expect(parseFunctions('src/naming.ts', source).map((fn) => fn.name)).toEqual([
+      'Widget.constructor',
+      'Widget.handler',
+      'Widget.value',
+      'Widget.value',
+      'Widget.[key]',
+      'object.run',
+      'object.value',
+      'object.value',
+      'object.[key]',
+      'src/naming.ts:17:9',
+    ]);
+  });
+
   it('records direct and indirect nested function bodies', () => {
     const source = `function outer() {
   const middle = () => {

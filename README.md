@@ -8,11 +8,11 @@ This document follows Simplified Technical English.
 
 The `crap4ts` CLI and library support Node.js 20.19 or later.
 
-Mutation testing is contributor-only tooling. `npm run mutation` requires Node.js 22.18 or later in the Node.js 22 release line. It also supports Node.js 24.11 or later. It does not support Node.js 20. The package `devEngines` warning documents this source-workspace requirement without raising the runtime requirement for CLI and library consumers.
+Mutation testing is contributor-only tooling. `pnpm mutation` requires Node.js 22.18 or later in the Node.js 22 release line. It also supports Node.js 24.11 or later. It does not support Node.js 20. The package `devEngines` metadata records this source-workspace requirement without raising the runtime requirement for CLI and library consumers.
 
 ```sh
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 Run the built executable directly during local development:
@@ -21,7 +21,7 @@ Run the built executable directly during local development:
 node dist/cli/main.js --help
 ```
 
-You can also use `npm link` after the build to make the `crap4ts` command available on your current machine.
+You can also use `pnpm link --global` after the build to make the `crap4ts` command available on your current machine.
 
 ## Configure a project
 
@@ -30,7 +30,7 @@ Create `crap4ts.config.json` in the project directory. The CLI reads only that f
 ```json
 {
   "sourceRoots": ["src"],
-  "coverageCommand": "npm run coverage",
+  "coverageCommand": "pnpm coverage",
   "coveragePath": "coverage/coverage-final.json",
   "coverageFormat": "istanbul",
   "coverageDirectory": "coverage"
@@ -118,6 +118,16 @@ The report sorts numeric CRAP scores from highest to lowest. Source path and sou
 
 `N/A` means that the analyzer lacks coverage evidence for that function. It does not mean 0 percent coverage. Text mode writes the reason to stderr.
 
+Use [Uncle Bob's published bands](https://github.com/unclebob/crap4clj#crap-formula) as guidance:
+
+| CRAP score | Interpretation |
+| --- | --- |
+| 1-5 | Low. The function is clean. |
+| 5-30 | Moderate. Consider adding tests or refactoring. |
+| 30+ | High. The function is complex and under-tested. |
+
+The published bands overlap at 5 and 30. Treat them as approximate risk guidance, not strict categories or pass/fail thresholds.
+
 JSON mode keeps full numeric precision. Each entry exposes its source position through top-level `start` and `end` objects. The report also includes tool metadata, coverage metadata, and structured diagnostics. Stdout contains exactly one JSON object, so another program can parse it directly.
 
 ```sh
@@ -173,12 +183,12 @@ The skill does not authorize an agent to edit tests or source files. Give that i
 ## Project checks
 
 ```sh
-npm test
-npm run build
-npx tsc -p tsconfig.json --noEmit
-npm run coverage
-npm run self-check
-npm run mutation
+pnpm test
+pnpm build
+pnpm exec tsc -p tsconfig.json --noEmit
+pnpm coverage
+pnpm self-check
+pnpm mutation
 ```
 
-`npm run self-check` builds the package and runs `crap4ts` against this repository. Mutation testing covers the scorer, complexity code, and coverage adapters. Run mutation with Node.js 22.18 or later in Node.js 22, or Node.js 24.11 or later.
+`pnpm self-check` builds the package and runs `crap4ts` against this repository. Mutation testing covers the scorer, complexity code, and coverage adapters. Run mutation with Node.js 22.18 or later in Node.js 22, or Node.js 24.11 or later.

@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeProject } from '../analysis/analyze-project.js';
+import type { AnalysisResult } from '../analysis/analyze-project.js';
 import { loadConfig } from '../config/load-config.js';
 import { parseIstanbulCoverage } from '../coverage/istanbul/parse-istanbul.js';
 import { parseLcov } from '../coverage/lcov/parse-lcov.js';
@@ -44,6 +45,13 @@ const processIo: CliIo = {
   stderr: (text) => process.stderr.write(text),
 };
 
+type AnalyzeOptions = Extract<ResolvedOptions, { action: 'analyze' }>;
+
+interface CliAnalysis {
+  coverage: CoverageArtifact;
+  result: AnalysisResult;
+}
+
 export async function runCli(
   argv: string[],
   io: CliIo = processIo,
@@ -62,42 +70,60 @@ export async function runCli(
       return 0;
     }
 
-    await generateCoverage(options, projectRoot);
-    const coverage = await readCoverage(options, projectRoot);
-    const result = await analyzeProject({
-      projectRoot,
-      sourceRoots: options.sourceRoots,
-      filters: options.filters,
-      coverage,
-    });
-
-    if (options.json) {
-      io.stdout(formatJsonReport({
-        toolVersion: TOOL_VERSION,
-        coverage: {
-          format: options.coverageFormat,
-          kind: coverage.kind,
-          path: options.coveragePath,
-        },
-        result,
-      }));
-    } else {
-      io.stdout(formatTextReport(result));
-      for (const diagnostic of result.diagnostics) io.stderr(formatDiagnostic(diagnostic));
-    }
+    const analysis = await analyzeFromOptions(options, projectRoot);
+    writeReport(options, analysis, io);
 
     return 0;
   } catch (error) {
-    if (error instanceof UsageError) {
-      io.stderr(`Error: ${error.message}\n`);
-      return 2;
-    }
-    if (error instanceof Crap4tsError) {
-      io.stderr(`Error: ${error.message}\n`);
-      return 1;
-    }
-    throw error;
+    const status = knownErrorStatus(error);
+    if (status === undefined) throw error;
+    io.stderr(`Error: ${knownErrorMessage(error)}\n`);
+    return status;
   }
+}
+
+async function analyzeFromOptions(
+  options: AnalyzeOptions,
+  projectRoot: string,
+): Promise<CliAnalysis> {
+  await generateCoverage(options, projectRoot);
+  const coverage = await readCoverage(options, projectRoot);
+  const result = await analyzeProject({
+    projectRoot,
+    sourceRoots: options.sourceRoots,
+    filters: options.filters,
+    coverage,
+  });
+  return { coverage, result };
+}
+
+function writeReport(options: AnalyzeOptions, analysis: CliAnalysis, io: CliIo): void {
+  if (options.json) {
+    io.stdout(formatJsonReport({
+      toolVersion: TOOL_VERSION,
+      coverage: {
+        format: options.coverageFormat,
+        kind: analysis.coverage.kind,
+        path: options.coveragePath,
+      },
+      result: analysis.result,
+    }));
+    return;
+  }
+
+  io.stdout(formatTextReport(analysis.result));
+  for (const diagnostic of analysis.result.diagnostics) io.stderr(formatDiagnostic(diagnostic));
+}
+
+function knownErrorStatus(error: unknown): number | undefined {
+  if (error instanceof UsageError) return 2;
+  if (error instanceof Crap4tsError) return 1;
+  return undefined;
+}
+
+function knownErrorMessage(error: unknown): string {
+  if (error instanceof Crap4tsError) return error.message;
+  throw error;
 }
 
 async function generateCoverage(options: ResolvedOptions, projectRoot: string): Promise<void> {
@@ -109,7 +135,7 @@ async function generateCoverage(options: ResolvedOptions, projectRoot: string): 
 }
 
 async function readCoverage(
-  options: Extract<ResolvedOptions, { action: 'analyze' }>,
+  options: AnalyzeOptions,
   projectRoot: string,
 ): Promise<CoverageArtifact> {
   const artifactPath = resolve(projectRoot, options.coveragePath);

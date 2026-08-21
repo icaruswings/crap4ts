@@ -13,6 +13,18 @@ export interface ParsedFunction {
 }
 
 type FunctionWithBody = ts.FunctionLikeDeclaration & { body: ts.FunctionBody };
+type NameResolver = (
+  node: ts.FunctionLikeDeclaration,
+  sourceFile: ts.SourceFile,
+) => string | undefined;
+
+const nameResolvers: NameResolver[] = [
+  declaredFunctionName,
+  classMemberName,
+  variableInitializerName,
+  objectMemberName,
+  propertyName,
+];
 
 export function parseFunctions(source: string, sourceText: string): ParsedFunction[] {
   const sourceFile = ts.createSourceFile(
@@ -92,72 +104,84 @@ function functionName(
   source: string,
   sourceFile: ts.SourceFile,
 ): string {
-  const declaredName = getDeclaredFunctionName(node);
-  if (declaredName !== undefined) return declaredName;
-
-  const classMemberName = getClassMemberName(node, sourceFile);
-  if (classMemberName !== undefined) return classMemberName;
-
-  const variableName = getVariableInitializerName(node);
-  if (variableName !== undefined) return variableName;
-
-  const objectMemberName = getObjectMemberName(node, sourceFile);
-  if (objectMemberName !== undefined) return objectMemberName;
-
-  const propertyName = getPropertyName(node, sourceFile);
-  if (propertyName !== undefined) return propertyName;
+  for (const resolveName of nameResolvers) {
+    const name = resolveName(node, sourceFile);
+    if (name !== undefined) return name;
+  }
 
   const position = toPosition(sourceFile, node.getStart(sourceFile));
   return `${source}:${position.line}:${position.column}`;
 }
 
-function getDeclaredFunctionName(node: ts.FunctionLikeDeclaration): string | undefined {
+function declaredFunctionName(node: ts.FunctionLikeDeclaration): string | undefined {
   if (!ts.isFunctionDeclaration(node) && !ts.isFunctionExpression(node)) return undefined;
   return node.name !== undefined && ts.isIdentifier(node.name) ? node.name.text : undefined;
 }
 
-function getClassMemberName(
+function classMemberName(
   node: ts.FunctionLikeDeclaration,
   sourceFile: ts.SourceFile,
 ): string | undefined {
-  const member = ts.isPropertyDeclaration(node.parent) ? node.parent : node;
+  const member = containingClassMember(node);
+  const className = declaredClassName(member);
+  if (className === undefined) return undefined;
+
+  if (ts.isConstructorDeclaration(node)) return `${className}.constructor`;
+
+  return qualifiedName(className, getNodeName(member, sourceFile));
+}
+
+function containingClassMember(node: ts.FunctionLikeDeclaration): ts.Node {
+  return ts.isPropertyDeclaration(node.parent) ? node.parent : node;
+}
+
+function declaredClassName(member: ts.Node): string | undefined {
   const classDeclaration = member.parent;
   if (!ts.isClassDeclaration(classDeclaration) && !ts.isClassExpression(classDeclaration)) return undefined;
 
   const className = classDeclaration.name;
   if (className === undefined || !ts.isIdentifier(className)) return undefined;
-
-  if (ts.isConstructorDeclaration(node)) return `${className.text}.constructor`;
-
-  const memberName = getNodeName(member, sourceFile);
-  return memberName === undefined ? undefined : `${className.text}.${memberName}`;
+  return className.text;
 }
 
-function getVariableInitializerName(node: ts.FunctionLikeDeclaration): string | undefined {
+function variableInitializerName(node: ts.FunctionLikeDeclaration): string | undefined {
   const declaration = node.parent;
   if (!ts.isVariableDeclaration(declaration) || !sameNode(declaration.initializer, node)) return undefined;
   return ts.isIdentifier(declaration.name) ? declaration.name.text : undefined;
 }
 
-function getObjectMemberName(
+function objectMemberName(
   node: ts.FunctionLikeDeclaration,
   sourceFile: ts.SourceFile,
 ): string | undefined {
   const property = getContainingProperty(node);
   if (property === undefined) return undefined;
 
+  return qualifiedName(objectVariableName(property), getNodeName(property, sourceFile));
+}
+
+function objectVariableName(property: ts.Node): string | undefined {
+  const declaration = objectVariableDeclaration(property);
+  if (declaration === undefined) return undefined;
+  return ts.isIdentifier(declaration.name) ? declaration.name.text : undefined;
+}
+
+function objectVariableDeclaration(property: ts.Node): ts.VariableDeclaration | undefined {
   const object = property.parent;
   if (!ts.isObjectLiteralExpression(object)) return undefined;
 
   const declaration = object.parent;
-  if (!ts.isVariableDeclaration(declaration) || !sameNode(declaration.initializer, object)) return undefined;
-  if (!ts.isIdentifier(declaration.name)) return undefined;
-
-  const propertyName = getNodeName(property, sourceFile);
-  return propertyName === undefined ? undefined : `${declaration.name.text}.${propertyName}`;
+  if (!ts.isVariableDeclaration(declaration)) return undefined;
+  return sameNode(declaration.initializer, object) ? declaration : undefined;
 }
 
-function getPropertyName(node: ts.FunctionLikeDeclaration, sourceFile: ts.SourceFile): string | undefined {
+function qualifiedName(owner: string | undefined, member: string | undefined): string | undefined {
+  if (owner === undefined) return undefined;
+  if (member === undefined) return undefined;
+  return `${owner}.${member}`;
+}
+
+function propertyName(node: ts.FunctionLikeDeclaration, sourceFile: ts.SourceFile): string | undefined {
   const property = getContainingProperty(node);
   if (property === undefined) return undefined;
   return getNodeName(property, sourceFile);

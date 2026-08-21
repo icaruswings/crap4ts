@@ -13,6 +13,12 @@ export interface CliArgs {
   help: boolean;
 }
 
+interface OptionResult {
+  nextIndex: number;
+}
+
+type OptionHandler = (args: CliArgs, argv: string[], index: number) => OptionResult;
+
 function optionValue(argv: string[], index: number, flag: string): string {
   const value = argv[index + 1];
   if (value === undefined || value.startsWith('-')) {
@@ -43,6 +49,63 @@ function formatValue(value: string): 'lcov' | 'istanbul' {
   return value;
 }
 
+function useExistingCoverageOption(args: CliArgs, _argv: string[], index: number): OptionResult {
+  args.useExistingCoverage = true;
+  return { nextIndex: index + 1 };
+}
+
+function jsonOption(args: CliArgs, _argv: string[], index: number): OptionResult {
+  args.json = true;
+  return { nextIndex: index + 1 };
+}
+
+function helpOption(args: CliArgs, _argv: string[], index: number): OptionResult {
+  args.help = true;
+  return { nextIndex: index + 1 };
+}
+
+function sourceRootOption(args: CliArgs, argv: string[], index: number): OptionResult {
+  const flag = argv[index]!;
+  const root = relativeValue(optionValue(argv, index, flag), flag);
+  args.sourceRoots = [...(args.sourceRoots ?? []), root];
+  return { nextIndex: index + 2 };
+}
+
+function coverageCommandOption(args: CliArgs, argv: string[], index: number): OptionResult {
+  const flag = argv[index]!;
+  args.coverageCommand = nonEmptyValue(optionValue(argv, index, flag), flag);
+  return { nextIndex: index + 2 };
+}
+
+function coveragePathOption(args: CliArgs, argv: string[], index: number): OptionResult {
+  const flag = argv[index]!;
+  args.coveragePath = relativeValue(optionValue(argv, index, flag), flag);
+  return { nextIndex: index + 2 };
+}
+
+function coverageFormatOption(args: CliArgs, argv: string[], index: number): OptionResult {
+  const flag = argv[index]!;
+  args.coverageFormat = formatValue(optionValue(argv, index, flag));
+  return { nextIndex: index + 2 };
+}
+
+function coverageDirectoryOption(args: CliArgs, argv: string[], index: number): OptionResult {
+  const flag = argv[index]!;
+  args.coverageDirectory = relativeValue(optionValue(argv, index, flag), flag);
+  return { nextIndex: index + 2 };
+}
+
+const optionHandlers: Record<string, OptionHandler> = {
+  '--use-existing-coverage': useExistingCoverageOption,
+  '--json': jsonOption,
+  '--help': helpOption,
+  '--source-root': sourceRootOption,
+  '--coverage-command': coverageCommandOption,
+  '--coverage': coveragePathOption,
+  '--coverage-format': coverageFormatOption,
+  '--coverage-directory': coverageDirectoryOption,
+};
+
 export function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = {
     filters: [],
@@ -51,35 +114,22 @@ export function parseArgs(argv: string[]): CliArgs {
     help: false,
   };
 
-  for (let index = 0; index < argv.length; index += 1) {
+  let index = 0;
+  while (index < argv.length) {
     const argument = argv[index];
-    if (argument === undefined) continue;
-    if (!argument.startsWith('-')) {
-      args.filters.push(nonEmptyValue(argument, 'filter'));
+    if (argument === undefined) {
+      index += 1;
       continue;
     }
-    if (argument === '--use-existing-coverage') args.useExistingCoverage = true;
-    else if (argument === '--json') args.json = true;
-    else if (argument === '--help') args.help = true;
-    else if (argument === '--source-root') {
-      const root = relativeValue(optionValue(argv, index, argument), argument);
-      args.sourceRoots = [...(args.sourceRoots ?? []), root];
+    if (!argument.startsWith('-')) {
+      args.filters.push(nonEmptyValue(argument, 'filter'));
       index += 1;
-    } else if (argument === '--coverage-command') {
-      args.coverageCommand = nonEmptyValue(optionValue(argv, index, argument), argument);
-      index += 1;
-    } else if (argument === '--coverage') {
-      args.coveragePath = relativeValue(optionValue(argv, index, argument), argument);
-      index += 1;
-    } else if (argument === '--coverage-format') {
-      args.coverageFormat = formatValue(optionValue(argv, index, argument));
-      index += 1;
-    } else if (argument === '--coverage-directory') {
-      args.coverageDirectory = relativeValue(optionValue(argv, index, argument), argument);
-      index += 1;
-    } else {
-      throw new UsageError(`Unknown option: ${argument}`);
+      continue;
     }
+
+    const handler = optionHandlers[argument];
+    if (handler === undefined) throw new UsageError(`Unknown option: ${argument}`);
+    index = handler(args, argv, index).nextIndex;
   }
 
   return args;
