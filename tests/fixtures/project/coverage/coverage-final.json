@@ -8,6 +8,15 @@
     },
     "s": { "0": 1 }
   },
+  "src/empty.ts": {
+    "statementMap": {
+      "0": {
+        "start": { "line": 1, "column": 0 },
+        "end": { "line": 1, "column": 23 }
+      }
+    },
+    "s": { "0": 1 }
+  },
   "src/orders.ts": {
     "statementMap": {
       "0": {
@@ -17,13 +26,9 @@
       "1": {
         "start": { "line": 5, "column": 2 },
         "end": { "line": 5, "column": 17 }
-      },
-      "2": {
-        "start": { "line": 7, "column": 22 },
-        "end": { "line": 7, "column": 31 }
       }
     },
-    "s": { "0": 1, "1": 0, "2": 0 }
+    "s": { "0": 1, "1": 0 }
   },
   "generated/outside.ts": {
     "statementMap": {
