@@ -17,6 +17,10 @@ describe('normalizePath', () => {
       'C:/workspace/project/Button.tsx',
     );
   });
+
+  it('preserves malformed percent signs while decoding valid URL escapes', () => {
+    expect(normalizePath('src/100%coverage/%E2%9C%93.ts')).toBe('src/100%coverage/✓.ts');
+  });
 });
 
 describe('toProjectRelative', () => {

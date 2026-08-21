@@ -75,6 +75,18 @@ describe('findSourceFiles', () => {
     await expect(findSourceFiles(projectRoot, ['../outside'], [])).rejects.toBeInstanceOf(ConfigError);
   });
 
+  it('rejects configured source-root symlinks that target outside the project', async () => {
+    const projectRoot = await makeProject();
+    const outsideDirectory = await mkdtemp(join(tmpdir(), 'crap4ts-outside-source-root-'));
+    temporaryDirectories.push(outsideDirectory);
+    await writeFile(join(outsideDirectory, 'escaped.ts'), 'export {};\n');
+    await symlink(outsideDirectory, join(projectRoot, 'linked-source-root'), 'dir');
+
+    await expect(findSourceFiles(projectRoot, ['linked-source-root'], [])).rejects.toBeInstanceOf(
+      ConfigError,
+    );
+  });
+
   it('reports configured roots and filters when no matching source files exist', async () => {
     const projectRoot = await makeProject();
     await writeProjectFile(projectRoot, 'src/available.ts');

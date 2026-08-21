@@ -1,4 +1,4 @@
-import { lstat, readdir } from 'node:fs/promises';
+import { lstat, readdir, realpath } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { ConfigError, NoSourceFilesError } from '../errors.js';
 import { normalizePath, toProjectRelative } from '../paths/normalize-path.js';
@@ -74,14 +74,20 @@ export async function findSourceFiles(
   filters: string[],
 ): Promise<string[]> {
   const resolvedProjectRoot = resolve(projectRoot);
-  const resolvedSourceRoots = sourceRoots.map((sourceRoot) => {
+  const realProjectRoot = await realpath(resolvedProjectRoot);
+  const resolvedSourceRoots = await Promise.all(sourceRoots.map(async (sourceRoot) => {
     const resolvedSourceRoot = resolve(resolvedProjectRoot, normalizePath(sourceRoot));
     if (!isWithinProject(resolvedProjectRoot, resolvedSourceRoot)) {
       throw new ConfigError(`Source root resolves outside the project: ${sourceRoot}`);
     }
 
+    const realSourceRoot = await realpath(resolvedSourceRoot);
+    if (!isWithinProject(realProjectRoot, realSourceRoot)) {
+      throw new ConfigError(`Source root resolves outside the project: ${sourceRoot}`);
+    }
+
     return resolvedSourceRoot;
-  });
+  }));
   const sourceFiles = new Set<string>();
 
   for (const sourceRoot of resolvedSourceRoots) {
