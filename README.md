@@ -8,7 +8,7 @@ This document follows Simplified Technical English.
 
 The `crap4ts` CLI and library support Node.js 20.19 or later.
 
-Mutation testing is contributor-only tooling. `npm run mutation` requires Node.js 22.18 or later and is not supported on Node.js 20. The package `devEngines` warning documents this source-workspace requirement without raising the runtime requirement for CLI and library consumers.
+Mutation testing is contributor-only tooling. `npm run mutation` requires Node.js 22.18 or later in the Node.js 22 release line. It also supports Node.js 24.11 or later. It does not support Node.js 20. The package `devEngines` warning documents this source-workspace requirement without raising the runtime requirement for CLI and library consumers.
 
 ```sh
 npm install
@@ -181,4 +181,4 @@ npm run self-check
 npm run mutation
 ```
 
-`npm run self-check` builds the package and runs `crap4ts` against this repository. Mutation testing covers the scorer, complexity code, and coverage adapters. Run the mutation command with Node.js 22.18 or later.
+`npm run self-check` builds the package and runs `crap4ts` against this repository. Mutation testing covers the scorer, complexity code, and coverage adapters. Run mutation with Node.js 22.18 or later in Node.js 22, or Node.js 24.11 or later.

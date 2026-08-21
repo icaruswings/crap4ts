@@ -9,7 +9,7 @@
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": ">=22.18",
+      "version": "^22.18.0 || >=24.11.0",
       "onFail": "warn"
     }
   },
