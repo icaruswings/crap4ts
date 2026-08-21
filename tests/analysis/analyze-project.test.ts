@@ -257,19 +257,40 @@ describe('analyzeProject', () => {
     ]));
   });
 
-  it('keeps a Windows-drive checkout root out of an unmatched diagnostic source and message', () => {
-    const diagnostic = unmatchedCoverageFile('C:\\repo', {
-      sourcePath: 'C:/repo/src/file.ts',
-      kind: 'line',
-      lines: [],
+  it('keeps case-varied Windows checkout roots out of unmatched JSON diagnostics', () => {
+    const diagnostics = [
+      unmatchedCoverageFile('C:/Repo', {
+        sourcePath: 'c:/repo/src/drive.ts',
+        kind: 'line',
+        lines: [],
+      }),
+      unmatchedCoverageFile('C:/Repo', {
+        sourcePath: 'C:/repo/src/component.ts',
+        kind: 'line',
+        lines: [],
+      }),
+    ];
+    const report = formatJsonReport({
+      toolVersion: '0.1.0',
+      coverage: { format: 'lcov', kind: 'line', path: 'coverage/lcov.info' },
+      result: { entries: [], diagnostics },
     });
 
-    expect(diagnostic).toEqual({
-      code: 'UNMATCHED_COVERAGE_FILE',
-      message: 'Coverage file "src/file.ts" did not match any analyzed source file',
-      source: 'src/file.ts',
-    });
-    expect(JSON.stringify(diagnostic)).not.toContain('C:/repo');
+    expect(diagnostics).toEqual([
+      {
+        code: 'UNMATCHED_COVERAGE_FILE',
+        message: 'Coverage file "src/drive.ts" did not match any analyzed source file',
+        source: 'src/drive.ts',
+      },
+      {
+        code: 'UNMATCHED_COVERAGE_FILE',
+        message: 'Coverage file "src/component.ts" did not match any analyzed source file',
+        source: 'src/component.ts',
+      },
+    ]);
+    expect(report).not.toContain('C:/Repo');
+    expect(report).not.toContain('c:/repo');
+    expect(report).not.toContain('C:/repo');
   });
 
   it('keeps lexical and canonical symlink roots out of unmatched JSON diagnostics', async () => {

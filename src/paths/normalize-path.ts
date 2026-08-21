@@ -1,5 +1,5 @@
 import { realpathSync } from 'node:fs';
-import { posix } from 'node:path';
+import { posix, win32 } from 'node:path';
 
 function decodePath(value: string): string {
   try {
@@ -24,7 +24,7 @@ export function normalizePath(value: string): string {
 
 export function isAbsolutePath(value: string): boolean {
   const normalized = normalizePath(value);
-  return posix.isAbsolute(normalized) || /^[A-Za-z]:\//.test(normalized);
+  return posix.isAbsolute(normalized) || isWindowsDriveAbsolute(normalized);
 }
 
 export function toAbsolutePath(value: string): string {
@@ -42,7 +42,13 @@ export function canonicalPath(value: string): string {
 }
 
 export function toProjectRelative(projectRoot: string, value: string): string {
-  return posix.relative(normalizePath(projectRoot), normalizePath(value));
+  const normalizedRoot = normalizePath(projectRoot);
+  const normalizedValue = normalizePath(value);
+  if (isWindowsDriveAbsolute(normalizedRoot) && isWindowsDriveAbsolute(normalizedValue)) {
+    return normalizePath(win32.relative(normalizedRoot, normalizedValue));
+  }
+
+  return posix.relative(normalizedRoot, normalizedValue);
 }
 
 export function toProjectDiagnosticPath(projectRoot: string, value: string): string {
@@ -61,4 +67,8 @@ export function toProjectDiagnosticPath(projectRoot: string, value: string): str
 
 function isContainedRelativePath(value: string): boolean {
   return value !== '..' && !value.startsWith('../') && !isAbsolutePath(value);
+}
+
+function isWindowsDriveAbsolute(value: string): boolean {
+  return /^[A-Za-z]:\//.test(value);
 }

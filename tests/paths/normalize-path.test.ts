@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isAbsolutePath,
   normalizePath,
+  toProjectDiagnosticPath,
   toProjectRelative,
 } from '../../src/paths/normalize-path.js';
 
@@ -35,6 +36,25 @@ describe('toProjectRelative', () => {
         'file:C:\\workspace\\project\\src\\components\\Button.tsx',
       ),
     ).toBe('src/components/Button.tsx');
+  });
+
+  it.each([
+    ['c:/repo/src/drive.ts', 'src/drive.ts'],
+    ['C:/repo/src/component.ts', 'src/component.ts'],
+  ])('uses Windows case-insensitive semantics for %s', (value, expected) => {
+    expect(toProjectRelative('C:/Repo', value)).toBe(expected);
+  });
+});
+
+describe('toProjectDiagnosticPath', () => {
+  it('preserves cross-drive, traversal, and POSIX case-sensitive external paths', () => {
+    expect(toProjectDiagnosticPath('C:/Repo', 'D:/Repo/src/file.ts')).toBe(
+      'D:/Repo/src/file.ts',
+    );
+    expect(toProjectDiagnosticPath('C:/Repo', 'C:/Other/file.ts')).toBe('C:/Other/file.ts');
+    expect(toProjectDiagnosticPath('/workspace/Repo', '/workspace/repo/src/file.ts')).toBe(
+      '/workspace/repo/src/file.ts',
+    );
   });
 });
 
