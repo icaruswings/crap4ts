@@ -129,15 +129,13 @@ describe('formatJsonReport', () => {
       "name": "highest",
       "module": "src/billing",
       "source": "src/billing.ts",
-      "range": {
-        "start": {
-          "line": 3,
-          "column": 4
-        },
-        "end": {
-          "line": 3,
-          "column": 8
-        }
+      "start": {
+        "line": 3,
+        "column": 4
+      },
+      "end": {
+        "line": 3,
+        "column": 8
       },
       "complexity": 12,
       "coverage": 45,
@@ -148,15 +146,13 @@ describe('formatJsonReport', () => {
       "name": "sameScoreEarlierSource",
       "module": "src/account",
       "source": "src/account.ts",
-      "range": {
-        "start": {
-          "line": 12,
-          "column": 9
-        },
-        "end": {
-          "line": 12,
-          "column": 13
-        }
+      "start": {
+        "line": 12,
+        "column": 9
+      },
+      "end": {
+        "line": 12,
+        "column": 13
       },
       "complexity": 12,
       "coverage": 50,
@@ -167,15 +163,13 @@ describe('formatJsonReport', () => {
       "name": "sameLineEarlierColumn",
       "module": "src/alpha",
       "source": "src/alpha.ts",
-      "range": {
-        "start": {
-          "line": 12,
-          "column": 2
-        },
-        "end": {
-          "line": 12,
-          "column": 6
-        }
+      "start": {
+        "line": 12,
+        "column": 2
+      },
+      "end": {
+        "line": 12,
+        "column": 6
       },
       "complexity": 12,
       "coverage": 50,
@@ -186,15 +180,13 @@ describe('formatJsonReport', () => {
       "name": "sameColumn",
       "module": "src/alpha",
       "source": "src/alpha.ts",
-      "range": {
-        "start": {
-          "line": 12,
-          "column": 9
-        },
-        "end": {
-          "line": 12,
-          "column": 13
-        }
+      "start": {
+        "line": 12,
+        "column": 9
+      },
+      "end": {
+        "line": 12,
+        "column": 13
       },
       "complexity": 12,
       "coverage": 50,
@@ -205,15 +197,13 @@ describe('formatJsonReport', () => {
       "name": "sameName",
       "module": "src/alpha",
       "source": "src/alpha.ts",
-      "range": {
-        "start": {
-          "line": 12,
-          "column": 9
-        },
-        "end": {
-          "line": 12,
-          "column": 13
-        }
+      "start": {
+        "line": 12,
+        "column": 9
+      },
+      "end": {
+        "line": 12,
+        "column": 13
       },
       "complexity": 12,
       "coverage": 50,
@@ -224,15 +214,13 @@ describe('formatJsonReport', () => {
       "name": "unknownFirst",
       "module": "src/alpha",
       "source": "src/alpha.ts",
-      "range": {
-        "start": {
-          "line": 1,
-          "column": 1
-        },
-        "end": {
-          "line": 1,
-          "column": 5
-        }
+      "start": {
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "line": 1,
+        "column": 5
       },
       "complexity": 3,
       "coverage": null,
@@ -243,15 +231,13 @@ describe('formatJsonReport', () => {
       "name": "unknownLater",
       "module": "src/zeta",
       "source": "src/zeta.ts",
-      "range": {
-        "start": {
-          "line": 2,
-          "column": 1
-        },
-        "end": {
-          "line": 2,
-          "column": 5
-        }
+      "start": {
+        "line": 2,
+        "column": 1
+      },
+      "end": {
+        "line": 2,
+        "column": 5
       },
       "complexity": 3,
       "coverage": null,

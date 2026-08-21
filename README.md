@@ -116,7 +116,7 @@ The report sorts numeric CRAP scores from highest to lowest. Source path and sou
 
 `N/A` means that the analyzer lacks coverage evidence for that function. It does not mean 0 percent coverage. Text mode writes the reason to stderr.
 
-JSON mode keeps full numeric precision. It includes tool metadata, coverage metadata, entries, source ranges, and structured diagnostics. Stdout contains exactly one JSON object, so another program can parse it directly.
+JSON mode keeps full numeric precision. Each entry exposes its source position through top-level `start` and `end` objects. The report also includes tool metadata, coverage metadata, and structured diagnostics. Stdout contains exactly one JSON object, so another program can parse it directly.
 
 ```sh
 crap4ts --json

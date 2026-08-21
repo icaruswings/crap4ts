@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { posix, resolve } from 'node:path';
 import { extractFunctions } from '../complexity/extract-functions.js';
 import { matchCoverageFile } from '../coverage/match-file.js';
 import { measureFunctionCoverage } from '../coverage/measure-function.js';
 import type { CoverageArtifact, CoverageFile } from '../coverage/model.js';
 import { findSourceFiles } from '../files/find-source-files.js';
 import type { CrapEntry, Diagnostic } from '../model.js';
+import { normalizePath, toProjectRelative } from '../paths/normalize-path.js';
 import { crapScore } from '../scorer.js';
 
 export interface AnalyzeProjectOptions {
@@ -54,17 +55,30 @@ export async function analyzeProject(options: AnalyzeProjectOptions): Promise<An
 
   for (const file of options.coverage.files) {
     if (!matchedCoverageFiles.has(file)) {
-      diagnostics.push(unmatchedCoverageFile(file));
+      diagnostics.push(unmatchedCoverageFile(options.projectRoot, file));
     }
   }
 
   return { entries, diagnostics };
 }
 
-function unmatchedCoverageFile(file: CoverageFile): Diagnostic {
+function unmatchedCoverageFile(projectRoot: string, file: CoverageFile): Diagnostic {
+  const sourcePath = diagnosticCoveragePath(projectRoot, file.sourcePath);
   return {
     code: 'UNMATCHED_COVERAGE_FILE',
-    message: `Coverage file "${file.sourcePath}" did not match any analyzed source file`,
-    source: file.sourcePath,
+    message: `Coverage file "${sourcePath}" did not match any analyzed source file`,
+    source: sourcePath,
   };
+}
+
+function diagnosticCoveragePath(projectRoot: string, sourcePath: string): string {
+  const normalizedSource = normalizePath(sourcePath);
+  if (!posix.isAbsolute(normalizedSource)) return normalizedSource;
+
+  const relativeSource = normalizePath(toProjectRelative(resolve(projectRoot), normalizedSource));
+  return relativeSource !== '..'
+    && !relativeSource.startsWith('../')
+    && !posix.isAbsolute(relativeSource)
+    ? relativeSource
+    : normalizedSource;
 }

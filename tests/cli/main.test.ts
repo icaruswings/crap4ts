@@ -168,9 +168,16 @@ describe('runCli', () => {
     expect(status).toBe(0);
     expect(JSON.parse(output.stdout())).toMatchObject({
       coverage: { format: 'lcov', kind: 'line', path: 'coverage/lcov.info' },
-      entries: [{ name: 'risk', coverage: 50, coverageKind: 'line' }],
+      entries: [{
+        name: 'risk',
+        start: { line: 1, column: 1 },
+        end: { line: 4, column: 2 },
+        coverage: 50,
+        coverageKind: 'line',
+      }],
       diagnostics: [],
     });
+    expect(JSON.parse(output.stdout()).entries[0]).not.toHaveProperty('range');
     await expect(readFile(join(projectRoot, 'coverage/lcov.info'), 'utf8')).resolves.toBe(artifact);
     expect(output.stderr()).toBe('');
   });
