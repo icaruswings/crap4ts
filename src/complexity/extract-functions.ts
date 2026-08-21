@@ -1,5 +1,6 @@
 import * as ts from 'typescript';
-import type { SourcePosition, SourceRange } from '../model.js';
+import type { FunctionInfo, SourcePosition, SourceRange } from '../model.js';
+import { measureComplexity } from './measure-complexity.js';
 
 export interface ParsedFunction {
   id: string;
@@ -53,6 +54,18 @@ export function parseFunctions(source: string, sourceText: string): ParsedFuncti
   }
 
   return functions;
+}
+
+export function extractFunctions(source: string, sourceText: string): FunctionInfo[] {
+  return parseFunctions(source, sourceText).map((parsed) => ({
+    id: parsed.id,
+    name: parsed.name,
+    source: parsed.source,
+    range: parsed.range,
+    bodyRange: parsed.bodyRange,
+    nestedBodyRanges: parsed.nestedBodyRanges,
+    complexity: measureComplexity(parsed),
+  }));
 }
 
 function toRange(sourceFile: ts.SourceFile, start: number, end: number): SourceRange {
