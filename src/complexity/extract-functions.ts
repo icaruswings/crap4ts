@@ -92,11 +92,11 @@ function functionName(
   source: string,
   sourceFile: ts.SourceFile,
 ): string {
-  const classMemberName = getClassMemberName(node, sourceFile);
-  if (classMemberName !== undefined) return classMemberName;
-
   const declaredName = getDeclaredFunctionName(node);
   if (declaredName !== undefined) return declaredName;
+
+  const classMemberName = getClassMemberName(node, sourceFile);
+  if (classMemberName !== undefined) return classMemberName;
 
   const variableName = getVariableInitializerName(node);
   if (variableName !== undefined) return variableName;

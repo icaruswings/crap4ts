@@ -87,6 +87,16 @@ const object = {
     ]);
   });
 
+  it('prefers a named function expression identifier over its class field owner', () => {
+    const source = `class Widget {
+  handler = function declaredHandler() {};
+}`;
+
+    expect(parseFunctions('src/names.ts', source).map((fn) => fn.name)).toEqual([
+      'declaredHandler',
+    ]);
+  });
+
   it('records direct and indirect nested function bodies', () => {
     const source = `function outer() {
   const middle = () => {

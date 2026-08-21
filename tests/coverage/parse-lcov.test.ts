@@ -54,9 +54,33 @@ describe('parseLcov', () => {
 
   it.each([
     ['SF', 'SF record must begin with SF:'],
+    ['SF=/workspace/src/file.ts', 'SF record must begin with SF:'],
     ['DA', 'DA record must begin with DA:'],
+    ['DA=2,1', 'DA record must begin with DA:'],
   ])('rejects malformed required %s records', (record, message) => {
     expect(() => parseLcov(record)).toThrow(`line 1: ${message}`);
+  });
+
+  it('ignores unrelated LCOV record types while still parsing SF and DA records', () => {
+    const coverage = parseLcov([
+      'TN:suite',
+      'SF:src/file.ts',
+      'FN:1,file',
+      'FNDA:1,file',
+      'FNF:1',
+      'FNH:1',
+      'BRDA:1,0,0,1',
+      'LF:1',
+      'LH:1',
+      'DA:1,1',
+      'end_of_record',
+    ].join('\n'));
+
+    expect(coverage.files).toEqual([{
+      sourcePath: 'src/file.ts',
+      kind: 'line',
+      lines: [{ line: 1, hits: 1 }],
+    }]);
   });
 
   it('rejects unsafe hit totals for duplicate lines within a record', () => {

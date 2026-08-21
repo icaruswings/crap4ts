@@ -12,7 +12,7 @@ export function parseLcov(text: string): CoverageArtifact {
   for (const [index, record] of text.split(/\r?\n/).entries()) {
     const lineNumber = index + 1;
 
-    if (record === 'SF') {
+    if (record.startsWith('SF') && !record.startsWith('SF:')) {
       throw invalid(lineNumber, 'SF record must begin with SF:');
     }
 
@@ -26,7 +26,7 @@ export function parseLcov(text: string): CoverageArtifact {
       continue;
     }
 
-    if (record === 'DA') {
+    if (record.startsWith('DA') && !record.startsWith('DA:')) {
       throw invalid(lineNumber, 'DA record must begin with DA:');
     }
 

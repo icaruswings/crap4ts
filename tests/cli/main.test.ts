@@ -256,6 +256,27 @@ await writeFile('coverage/coverage-final.json', ${JSON.stringify(generatedCovera
     expect(output.stderr()).toContain('Coverage command failed with status 7');
   });
 
+  it('returns one with a clean parser error for an SF-tagged line without a colon', async () => {
+    const projectRoot = await makeProject();
+    const output = captureIo();
+    await writeConfig(projectRoot, {
+      sourceRoots: ['src'],
+      coveragePath: 'coverage/lcov.info',
+      coverageFormat: 'lcov',
+    });
+    await writeCoverage(projectRoot, 'coverage/lcov.info', [
+      'SF=src/example.ts',
+      'DA:2,1',
+      'end_of_record',
+    ].join('\n'));
+
+    const status = await runCli(['--use-existing-coverage'], output.io, projectRoot);
+
+    expect(status).toBe(1);
+    expect(output.stdout()).toBe('');
+    expect(output.stderr()).toBe('Error: line 1: SF record must begin with SF:\n');
+  });
+
   it.each([
     { name: 'invalid arguments', argv: ['--unknown'], config: undefined },
     { name: 'invalid configuration', argv: [], config: { sourceRoots: [] } },
