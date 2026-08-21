@@ -1,7 +1,12 @@
-import { realpathSync } from 'node:fs';
 import { posix } from 'node:path';
 import { AmbiguousCoveragePathError } from '../errors.js';
-import { normalizePath, toProjectRelative } from '../paths/normalize-path.js';
+import {
+  canonicalPath,
+  isAbsolutePath,
+  normalizePath,
+  toAbsolutePath,
+  toProjectRelative,
+} from '../paths/normalize-path.js';
 import type { CoverageFile } from './model.js';
 
 export function matchCoverageFile(
@@ -9,7 +14,7 @@ export function matchCoverageFile(
   source: string,
   files: CoverageFile[],
 ): CoverageFile | null {
-  const normalizedRoot = absolutePath(normalizePath(projectRoot));
+  const normalizedRoot = toAbsolutePath(projectRoot);
   const canonicalRoot = canonicalPath(normalizedRoot);
   const normalizedSource = normalizePath(source);
   const absoluteSource = isAbsolutePath(normalizedSource)
@@ -49,22 +54,6 @@ function uniqueMatch(source: string, matches: NormalizedCoverageFile[]): Coverag
   throw new AmbiguousCoveragePathError(
     `Coverage path for "${normalizePath(source)}" is ambiguous: ${candidates.join(', ')}`,
   );
-}
-
-function absolutePath(path: string): string {
-  return isAbsolutePath(path) ? path : normalizePath(posix.resolve(path));
-}
-
-function canonicalPath(path: string): string {
-  try {
-    return normalizePath(realpathSync.native(path));
-  } catch {
-    return path;
-  }
-}
-
-function isAbsolutePath(path: string): boolean {
-  return posix.isAbsolute(path) || /^[A-Za-z]:\//.test(path);
 }
 
 function isCompleteSegmentSuffix(path: string, suffix: string): boolean {

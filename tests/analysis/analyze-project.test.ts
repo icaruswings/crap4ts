@@ -1,4 +1,4 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,7 @@ import {
   type AnalysisResult,
   type AnalyzeProjectOptions,
 } from '../../src/index.js';
+import { unmatchedCoverageFile } from '../../src/analysis/analyze-project.js';
 
 const projectRoot = fileURLToPath(new URL('../fixtures/project/', import.meta.url));
 const temporaryDirectories: string[] = [];
@@ -253,6 +254,71 @@ describe('analyzeProject', () => {
         message: 'Coverage file "src/component.tsx" did not match any analyzed source file',
       }),
       expect.objectContaining({ source: '/external/build/generated.ts' }),
+    ]));
+  });
+
+  it('keeps a Windows-drive checkout root out of an unmatched diagnostic source and message', () => {
+    const diagnostic = unmatchedCoverageFile('C:\\repo', {
+      sourcePath: 'C:/repo/src/file.ts',
+      kind: 'line',
+      lines: [],
+    });
+
+    expect(diagnostic).toEqual({
+      code: 'UNMATCHED_COVERAGE_FILE',
+      message: 'Coverage file "src/file.ts" did not match any analyzed source file',
+      source: 'src/file.ts',
+    });
+    expect(JSON.stringify(diagnostic)).not.toContain('C:/repo');
+  });
+
+  it('keeps lexical and canonical symlink roots out of unmatched JSON diagnostics', async () => {
+    const realProject = await mkdtemp(join(tmpdir(), 'crap4ts-diagnostic-real-'));
+    const linkedProject = `${realProject}-link`;
+    temporaryDirectories.push(linkedProject, realProject);
+    await mkdir(join(realProject, 'src'));
+    await Promise.all([
+      writeFile(join(realProject, 'src/included.ts'), 'export function included() {}\n'),
+      writeFile(join(realProject, 'src/lexical.ts'), 'export function lexical() {}\n'),
+      writeFile(join(realProject, 'src/canonical.ts'), 'export function canonical() {}\n'),
+    ]);
+    await symlink(realProject, linkedProject, 'dir');
+    const canonicalProject = await realpath(realProject);
+    const result = await analyzeProject({
+      projectRoot: linkedProject,
+      sourceRoots: ['src'],
+      filters: ['included'],
+      coverage: parseLcov([
+        `SF:${join(linkedProject, 'src/lexical.ts')}`,
+        'DA:1,1',
+        'end_of_record',
+        `SF:${join(canonicalProject, 'src/canonical.ts')}`,
+        'DA:1,1',
+        'end_of_record',
+      ].join('\n')),
+    });
+
+    const report = formatJsonReport({
+      toolVersion: '0.1.0',
+      coverage: { format: 'lcov', kind: 'line', path: 'coverage/lcov.info' },
+      result,
+    });
+    const diagnostics = (JSON.parse(report) as {
+      diagnostics: Array<{ message: string; source: string }>;
+    }).diagnostics;
+
+    expect(report).not.toContain(realProject);
+    expect(report).not.toContain(linkedProject);
+    expect(report).not.toContain(canonicalProject);
+    expect(diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        source: 'src/canonical.ts',
+        message: 'Coverage file "src/canonical.ts" did not match any analyzed source file',
+      }),
+      expect.objectContaining({
+        source: 'src/lexical.ts',
+        message: 'Coverage file "src/lexical.ts" did not match any analyzed source file',
+      }),
     ]));
   });
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { normalizePath, toProjectRelative } from '../../src/paths/normalize-path.js';
+import {
+  isAbsolutePath,
+  normalizePath,
+  toProjectRelative,
+} from '../../src/paths/normalize-path.js';
 
 describe('normalizePath', () => {
   it('normalizes file URLs, URL encoding, separators, and dot segments', () => {
@@ -31,5 +35,13 @@ describe('toProjectRelative', () => {
         'file:C:\\workspace\\project\\src\\components\\Button.tsx',
       ),
     ).toBe('src/components/Button.tsx');
+  });
+});
+
+describe('isAbsolutePath', () => {
+  it('recognizes POSIX and Windows-drive absolute paths after normalization', () => {
+    expect(isAbsolutePath('/workspace/project/src/file.ts')).toBe(true);
+    expect(isAbsolutePath('C:/repo/src/file.ts')).toBe(true);
+    expect(isAbsolutePath('src/file.ts')).toBe(false);
   });
 });
