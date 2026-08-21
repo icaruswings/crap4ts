@@ -289,7 +289,7 @@ describe('analyzeProject', () => {
     );
     expect(result.diagnostics).toHaveLength(2);
     expect(result.diagnostics).toEqual(result.entries.map((entry) => ({
-      code: 'LCOV_FUNCTION_LINE_OVERLAP',
+      code: 'LCOV_NESTED_LINE_OVERLAP',
       message: 'LCOV cannot separate function coverage on shared line 1',
       source: 'src/overlap.ts',
       range: entry.range,

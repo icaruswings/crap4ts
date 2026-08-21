@@ -63,7 +63,7 @@ Text diagnostics go to stderr. JSON reports include diagnostics in the `diagnost
 
 - `NO_MATCHING_COVERAGE_FILE`: No coverage record matched the source path.
 - `NO_TRACKED_COVERAGE`: The matched record had no usable location for the function.
-- `LCOV_FUNCTION_LINE_OVERLAP`: LCOV could not separate functions that share a tracked physical line.
+- `LCOV_NESTED_LINE_OVERLAP`: LCOV could not separate functions that share a tracked physical line.
 - `UNMATCHED_COVERAGE_FILE`: A coverage record did not match an analyzed source file.
 
 Correct the configured roots, artifact format, or path when those values are wrong. Do not change tests or source code unless the user gives a separate instruction.

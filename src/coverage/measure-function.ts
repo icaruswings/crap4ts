@@ -91,7 +91,7 @@ function measureLines(
     ? []
     : [diagnostic(
       fn,
-      'LCOV_FUNCTION_LINE_OVERLAP',
+      'LCOV_NESTED_LINE_OVERLAP',
       `LCOV cannot separate function coverage on shared line${overlapLines.length === 1 ? '' : 's'} ${overlapLines.join(', ')}`,
     )];
 
