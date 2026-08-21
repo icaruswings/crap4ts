@@ -21,6 +21,8 @@ export type { ProjectConfig } from './config/load-config.js';
 export { parseArgs } from './cli/parse-args.js';
 export type { CliArgs } from './cli/parse-args.js';
 export { resolveOptions } from './cli/resolve-options.js';
+export { prepareCoverage } from './cli/prepare-coverage.js';
+export { runCoverageCommand } from './cli/run-coverage.js';
 export type {
   ExistingCoverageOptions,
   GeneratedCoverageOptions,
