@@ -56,6 +56,23 @@ describe('runCoverageCommand', () => {
     }]);
   });
 
+  it('honors a legacy spawn command supplied as the third argument', async () => {
+    const projectRoot = await makeProject();
+    const command = 'command-that-must-not-run';
+    const calls: Array<{ command: string; options: SpawnOptions }> = [];
+    const spawnCommand = (suppliedCommand: string, options: SpawnOptions): ChildProcess => {
+      calls.push({ command: suppliedCommand, options });
+      return childProcessThat('close', 0, null);
+    };
+
+    await runCoverageCommand(command, projectRoot, spawnCommand);
+
+    expect(calls).toEqual([{
+      command,
+      options: { cwd: projectRoot, shell: true, stdio: 'inherit' },
+    }]);
+  });
+
   it('routes coverage stdout to stderr when JSON output must stay clean', async () => {
     const projectRoot = await makeProject();
     const command = 'npm run coverage';

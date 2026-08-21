@@ -15,16 +15,32 @@ function startupError(command: string, cause: unknown): CoverageCommandError {
 export function runCoverageCommand(
   command: string,
   projectRoot: string,
-  options: RunCoverageOptions = {},
+  spawnCommand?: SpawnCoverageCommand,
+): Promise<void>;
+export function runCoverageCommand(
+  command: string,
+  projectRoot: string,
+  options?: RunCoverageOptions,
+  spawnCommand?: SpawnCoverageCommand,
+): Promise<void>;
+export function runCoverageCommand(
+  command: string,
+  projectRoot: string,
+  optionsOrSpawnCommand: RunCoverageOptions | SpawnCoverageCommand = {},
   spawnCommand: SpawnCoverageCommand = spawn,
 ): Promise<void> {
+  const options = typeof optionsOrSpawnCommand === 'function' ? {} : optionsOrSpawnCommand;
+  const executeCommand = typeof optionsOrSpawnCommand === 'function'
+    ? optionsOrSpawnCommand
+    : spawnCommand;
+
   return new Promise((resolve, reject) => {
     let child: ChildProcess;
     try {
       const stdio: SpawnOptions['stdio'] = options.stdout === 'stderr'
         ? ['inherit', 2, 'inherit']
         : 'inherit';
-      child = spawnCommand(command, { cwd: projectRoot, shell: true, stdio });
+      child = executeCommand(command, { cwd: projectRoot, shell: true, stdio });
     } catch (error) {
       reject(startupError(command, error));
       return;
