@@ -1,4 +1,6 @@
 export { crapScore } from './scorer.js';
+export { analyzeProject } from './analysis/analyze-project.js';
+export type { AnalysisResult, AnalyzeProjectOptions } from './analysis/analyze-project.js';
 export { extractFunctions, parseFunctions } from './complexity/extract-functions.js';
 export type { ParsedFunction } from './complexity/extract-functions.js';
 export { measureComplexity } from './complexity/measure-complexity.js';
