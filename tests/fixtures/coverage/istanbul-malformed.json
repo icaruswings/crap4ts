@@ -1,0 +1,57 @@
+{
+  "missingStatementMap": {
+    "src/missing-map.ts": {
+      "s": {}
+    }
+  },
+  "counterWithoutLocation": {
+    "src/no-location.ts": {
+      "statementMap": {},
+      "s": { "0": 1 }
+    }
+  },
+  "negativeHitCount": {
+    "src/negative-hit.ts": {
+      "statementMap": {
+        "0": {
+          "start": { "line": 1, "column": 0 },
+          "end": { "line": 1, "column": 1 }
+        }
+      },
+      "s": { "0": -1 }
+    }
+  },
+  "nonIntegerHitCount": {
+    "src/fractional-hit.ts": {
+      "statementMap": {
+        "0": {
+          "start": { "line": 1, "column": 0 },
+          "end": { "line": 1, "column": 1 }
+        }
+      },
+      "s": { "0": 1.5 }
+    }
+  },
+  "invalidRange": {
+    "src/invalid-range.ts": {
+      "statementMap": {
+        "0": {
+          "start": { "line": 0, "column": -1 },
+          "end": { "line": 1, "column": 1 }
+        }
+      },
+      "s": { "0": 1 }
+    }
+  },
+  "invalidColumn": {
+    "src/invalid-column.ts": {
+      "statementMap": {
+        "0": {
+          "start": { "line": 1, "column": -1 },
+          "end": { "line": 1, "column": 1 }
+        }
+      },
+      "s": { "0": 1 }
+    }
+  }
+}

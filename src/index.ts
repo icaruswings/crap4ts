@@ -2,6 +2,7 @@ export { crapScore } from './scorer.js';
 export { extractFunctions, parseFunctions } from './complexity/extract-functions.js';
 export type { ParsedFunction } from './complexity/extract-functions.js';
 export { measureComplexity } from './complexity/measure-complexity.js';
+export { parseIstanbulCoverage } from './coverage/istanbul/parse-istanbul.js';
 export { findSourceFiles } from './files/find-source-files.js';
 export { normalizePath, toProjectRelative } from './paths/normalize-path.js';
 export { TOOL_VERSION } from './version.js';
@@ -14,6 +15,14 @@ export {
   NoSourceFilesError,
   UsageError,
 } from './errors.js';
+export type {
+  CoverageArtifact,
+  CoverageFile,
+  LineCoverageFile,
+  LineLocation,
+  StatementCoverageFile,
+  StatementLocation,
+} from './coverage/model.js';
 export type {
   CrapEntry,
   CoverageKind,

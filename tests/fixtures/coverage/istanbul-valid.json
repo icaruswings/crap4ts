@@ -1,0 +1,39 @@
+{
+  "src\\zeta.ts": {
+    "statementMap": {
+      "9": {
+        "start": { "line": 3, "column": 0 },
+        "end": { "line": 3, "column": 12 }
+      },
+      "2": {
+        "start": { "line": 1, "column": 4 },
+        "end": { "line": 1, "column": 9 }
+      },
+      "5": {
+        "start": { "line": 1, "column": 1 },
+        "end": { "line": 1, "column": 3 }
+      },
+      "6": {
+        "start": { "line": 1, "column": 4 },
+        "end": { "line": 1, "column": 7 }
+      }
+    },
+    "s": {
+      "2": 4,
+      "5": 2,
+      "6": 1,
+      "9": 0
+    }
+  },
+  "./src/../src/Zeta.ts": {
+    "statementMap": {
+      "0": {
+        "start": { "line": 2, "column": 2 },
+        "end": { "line": 2, "column": 6 }
+      }
+    },
+    "s": {
+      "0": 8
+    }
+  }
+}
