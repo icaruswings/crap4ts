@@ -3,6 +3,7 @@ export { extractFunctions, parseFunctions } from './complexity/extract-functions
 export type { ParsedFunction } from './complexity/extract-functions.js';
 export { measureComplexity } from './complexity/measure-complexity.js';
 export { parseIstanbulCoverage } from './coverage/istanbul/parse-istanbul.js';
+export { parseLcov } from './coverage/lcov/parse-lcov.js';
 export { findSourceFiles } from './files/find-source-files.js';
 export { normalizePath, toProjectRelative } from './paths/normalize-path.js';
 export { TOOL_VERSION } from './version.js';

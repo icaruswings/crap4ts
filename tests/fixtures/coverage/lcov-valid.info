@@ -1,0 +1,16 @@
+TN:ignored-suite-name
+SF:src\beta.ts
+FN:1,firstFunction
+FNDA:3,firstFunction
+DA:5,1
+DA:1,0
+DA:5,2
+end_of_record
+SF:file:///workspace/project/src/Alpha%20file.ts
+DA:10,1
+DA:2,3
+BRDA:2,0,0,1
+end_of_record
+SF:/workspace/project/src/Alpha file.ts
+DA:2,5
+end_of_record
