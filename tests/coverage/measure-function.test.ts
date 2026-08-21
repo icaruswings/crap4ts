@@ -82,7 +82,7 @@ describe('measureFunctionCoverage', () => {
     expect(measurement.kind).toBe('line');
     expect(measurement.diagnostics).toEqual([
       expect.objectContaining({
-        code: 'LCOV_NESTED_LINE_OVERLAP',
+        code: 'LCOV_FUNCTION_LINE_OVERLAP',
         source: 'src/orders.ts',
       }),
     ]);

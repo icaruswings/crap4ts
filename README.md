@@ -152,7 +152,7 @@ The extractor recognizes function declarations, function expressions, arrow func
 
 Istanbul input uses statement locations and statement counters. The analyzer does not replace missing statement data with function or branch counters.
 
-LCOV input uses line hits. Shared physical lines can make nested function coverage ambiguous. The report includes `LCOV_NESTED_LINE_OVERLAP` when this occurs.
+LCOV input uses line hits. Coverage is ambiguous when any two functions in one source file share a tracked physical line, including sibling and nested functions. The report includes `LCOV_FUNCTION_LINE_OVERLAP` for every affected function. The shared line still counts once within each function measurement.
 
 The analyzer reports `N/A` when no coverage file matches a source or no tracked location belongs to a function. The diagnostics identify unmatched paths and unused coverage records.
 

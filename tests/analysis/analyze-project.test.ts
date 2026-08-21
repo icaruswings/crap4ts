@@ -1,7 +1,8 @@
-import { readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   analyzeProject,
   formatJsonReport,
@@ -12,9 +13,14 @@ import {
 } from '../../src/index.js';
 
 const projectRoot = fileURLToPath(new URL('../fixtures/project/', import.meta.url));
+const temporaryDirectories: string[] = [];
 
 const fixture = (name: string): Promise<string> =>
   readFile(new URL(`../fixtures/project/coverage/${name}`, import.meta.url), 'utf8');
+
+afterEach(async () => {
+  await Promise.all(temporaryDirectories.splice(0).map((path) => rm(path, { recursive: true })));
+});
 
 describe('analyzeProject', () => {
   it('analyzes Istanbul coverage in source and function order with stable diagnostics', async () => {
@@ -247,5 +253,46 @@ describe('analyzeProject', () => {
       }),
       expect.objectContaining({ source: '/external/build/generated.ts' }),
     ]));
+  });
+
+  it.each([
+    {
+      name: 'sibling top-level functions',
+      sourceText: 'const first = () => 1; const second = () => 2;\n',
+      functionNames: ['first', 'second'],
+    },
+    {
+      name: 'nested functions',
+      sourceText: 'function outer() { const inner = () => 1; return inner(); }\n',
+      functionNames: ['outer', 'inner'],
+    },
+  ])('diagnoses tracked one-line ambiguity for $name without inventing hits', async ({
+    sourceText,
+    functionNames,
+  }) => {
+    const temporaryProject = await mkdtemp(join(tmpdir(), 'crap4ts-overlap-'));
+    temporaryDirectories.push(temporaryProject);
+    await mkdir(join(temporaryProject, 'src'));
+    await writeFile(join(temporaryProject, 'src/overlap.ts'), sourceText);
+    const options: AnalyzeProjectOptions = {
+      projectRoot: temporaryProject,
+      sourceRoots: ['src'],
+      filters: [],
+      coverage: parseLcov('SF:src/overlap.ts\nDA:1,1\nend_of_record\n'),
+    };
+
+    const result = await analyzeProject(options);
+
+    expect(result.entries.map(({ name, coverage }) => ({ name, coverage }))).toEqual(
+      functionNames.map((name) => ({ name, coverage: 100 })),
+    );
+    expect(result.diagnostics).toHaveLength(2);
+    expect(result.diagnostics).toEqual(result.entries.map((entry) => ({
+      code: 'LCOV_FUNCTION_LINE_OVERLAP',
+      message: 'LCOV cannot separate function coverage on shared line 1',
+      source: 'src/overlap.ts',
+      range: entry.range,
+    })));
+    await expect(analyzeProject(options)).resolves.toEqual(result);
   });
 });

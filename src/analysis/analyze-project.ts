@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { posix, resolve } from 'node:path';
 import { extractFunctions } from '../complexity/extract-functions.js';
 import { matchCoverageFile } from '../coverage/match-file.js';
-import { measureFunctionCoverage } from '../coverage/measure-function.js';
+import { measureFunctionsCoverage } from '../coverage/measure-function.js';
 import type { CoverageArtifact, CoverageFile } from '../coverage/model.js';
 import { findSourceFiles } from '../files/find-source-files.js';
 import type { CrapEntry, Diagnostic } from '../model.js';
@@ -36,8 +36,9 @@ export async function analyzeProject(options: AnalyzeProjectOptions): Promise<An
       matchedCoverageFiles.add(coverageFile);
     }
 
-    for (const fn of functions) {
-      const measurement = measureFunctionCoverage(fn, coverageFile, options.coverage.kind);
+    const measurements = measureFunctionsCoverage(functions, coverageFile, options.coverage.kind);
+    for (const [index, fn] of functions.entries()) {
+      const measurement = measurements[index]!;
 
       entries.push({
         name: fn.name,

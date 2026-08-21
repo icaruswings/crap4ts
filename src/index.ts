@@ -11,7 +11,7 @@ export { measureComplexity } from './complexity/measure-complexity.js';
 export { parseIstanbulCoverage } from './coverage/istanbul/parse-istanbul.js';
 export { parseLcov } from './coverage/lcov/parse-lcov.js';
 export { matchCoverageFile } from './coverage/match-file.js';
-export { measureFunctionCoverage } from './coverage/measure-function.js';
+export { measureFunctionCoverage, measureFunctionsCoverage } from './coverage/measure-function.js';
 export type { CoverageMeasurement } from './coverage/measure-function.js';
 export { findSourceFiles } from './files/find-source-files.js';
 export { normalizePath, toProjectRelative } from './paths/normalize-path.js';
