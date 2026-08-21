@@ -1,4 +1,6 @@
 export { crapScore } from './scorer.js';
+export { parseFunctions } from './complexity/extract-functions.js';
+export type { ParsedFunction } from './complexity/extract-functions.js';
 export { TOOL_VERSION } from './version.js';
 export {
   AmbiguousCoveragePathError,
