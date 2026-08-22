@@ -182,6 +182,22 @@ The skill does not authorize an agent to edit tests or source files. Give that i
 
 ## Project checks
 
+Run the normal verification before a push:
+
+```sh
+pnpm verify
+```
+
+This command runs the complete test suite, builds the package, generates coverage, and checks this repository's CRAP scores.
+
+Run mutation testing as part of the slower full verification:
+
+```sh
+pnpm verify:full
+```
+
+You can also run each check separately:
+
 ```sh
 pnpm test
 pnpm build
@@ -191,4 +207,4 @@ pnpm self-check
 pnpm mutation
 ```
 
-`pnpm self-check` builds the package and runs `crap4ts` against this repository. Mutation testing covers the scorer, complexity code, and coverage adapters. Run mutation with Node.js 22.18 or later in Node.js 22, or Node.js 24.11 or later.
+`pnpm self-check` builds the package and runs `crap4ts` against this repository. Mutation testing covers the scorer, complexity code, and coverage adapters. Run `pnpm verify:full` with Node.js 22.18 or later in Node.js 22, or Node.js 24.11 or later.

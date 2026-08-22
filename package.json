@@ -29,6 +29,8 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "self-check": "pnpm build && node dist/cli/main.js",
+    "verify": "pnpm test && pnpm self-check",
+    "verify:full": "pnpm verify && pnpm mutation",
     "mutation": "stryker run"
   },
   "dependencies": {
