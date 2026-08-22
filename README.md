@@ -6,6 +6,18 @@ This document follows Simplified Technical English.
 
 `crap4ts` is an independent implementation of the CRAP metric. Uncle Bob's [`crap4clj`](https://github.com/unclebob/crap4clj) inspired its workflow and report. It is not a port or an official TypeScript version of `crap4clj`.
 
+## Why CRAP scores matter for AI agents
+
+Coding guidelines in a prompt are advisory. As an agent's context grows, earlier instructions can lose influence. The agent may stop following a rule such as "keep functions simple" when that rule matters most.
+
+Tools such as CRAP scoring and mutation testing do not depend on prompt compliance. They run against the code and produce repeatable evidence. An agent cannot lose these checks in its context or quietly soften their requirements.
+
+`crap4ts` provides this feedback by combining cyclomatic complexity with measured test coverage. Every run applies the same formula to the current code and coverage data. The report identifies functions that combine high complexity with weak test evidence. An agent can add tests, reduce complexity, or explain why a function needs an exception.
+
+A workflow can rerun `crap4ts` after each change and require the result to meet a project limit. This turns "keep the code maintainable" from a prompt instruction into a result the workflow can inspect.
+
+A low CRAP score does not prove that the system has good names, module boundaries, or architecture. The current release also reports scores without enforcing a threshold. A surrounding agent workflow or CI script must compare the JSON report with the project's chosen limit.
+
 ## Install and build
 
 The `crap4ts` CLI and library support Node.js 20.19 or later.
