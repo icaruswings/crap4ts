@@ -4,6 +4,8 @@ This document follows Simplified Technical English.
 
 `crap4ts` calculates cyclomatic complexity and coverage-weighted CRAP scores for TypeScript and TSX functions. It reports risky functions without changing source files or tests.
 
+`crap4ts` is an independent implementation of the CRAP metric. Uncle Bob's [`crap4clj`](https://github.com/unclebob/crap4clj) inspired its workflow and report. It is not a port or an official TypeScript version of `crap4clj`.
+
 ## Install and build
 
 The `crap4ts` CLI and library support Node.js 20.19 or later.
@@ -182,6 +184,8 @@ The skill does not authorize an agent to edit tests or source files. Give that i
 
 ## Project checks
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, quality requirements, and pull request guidance.
+
 Run the normal verification before a push:
 
 ```sh
@@ -208,3 +212,7 @@ pnpm mutation
 ```
 
 `pnpm self-check` builds the package and runs `crap4ts` against this repository. Mutation testing covers the scorer, complexity code, and coverage adapters. Run `pnpm verify:full` with Node.js 22.18 or later in Node.js 22, or Node.js 24.11 or later.
+
+## License
+
+`crap4ts` is available under the [MIT License](LICENSE).
