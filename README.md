@@ -20,19 +20,31 @@ A low score does not prove that the system has good names, module boundaries, or
 
 ## Quick start
 
-The CLI requires Node.js 20.19 or later. This release runs from a source checkout.
+The CLI requires Node.js 20.19 or later.
 
-Clone, build, and link the CLI:
+The package is currently hosted on GitHub Packages. GitHub requires authentication even for public npm packages. Create a personal access token (classic) with `read:packages`, then log in using your GitHub username and the token as the password:
 
 ```sh
-git clone https://github.com/icaruswings/crap4ts.git
-cd crap4ts
-
-corepack enable
-pnpm install --frozen-lockfile
-pnpm build
-pnpm link
+npm login --scope=@icaruswings --auth-type=legacy --registry=https://npm.pkg.github.com
+npm config set @icaruswings:registry https://npm.pkg.github.com --location=user
 ```
+
+Do not put your token in a committed project file. See [GitHub's npm registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry) for authentication details.
+
+Install the CLI globally:
+
+```sh
+npm install --global @icaruswings/crap4ts
+```
+
+Or install it as a development dependency in the project that you want to analyze:
+
+```sh
+npm install --save-dev @icaruswings/crap4ts
+npx crap4ts --help
+```
+
+The examples below use the global `crap4ts` command. For a local installation, use `npx crap4ts` or run `crap4ts` from a package script.
 
 Run the remaining commands from the project that you want to analyze. Create `crap4ts.config.json` in that project root:
 
