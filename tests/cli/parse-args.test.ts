@@ -61,6 +61,13 @@ describe('parseArgs', () => {
       expect(() => parseArgs(['--exclude', pattern])).toThrow(UsageError);
     });
 
+  it('parses --no-color without altering analysis options', () => {
+    expect(parseArgs(['--no-color']).noColor).toBe(true);
+    expect(resolveOptions(completeConfig, parseArgs(['--no-color']))).toEqual(
+      resolveOptions(completeConfig, parseArgs([])),
+    );
+  });
+
   it('returns explicit defaults when no arguments are present', () => {
     expect(parseArgs([])).toEqual({
       filters: [],

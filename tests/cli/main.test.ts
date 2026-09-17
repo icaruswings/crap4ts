@@ -3,7 +3,7 @@ import { access, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { runCli, type CliIo } from '../../src/cli/main.js';
 
 const temporaryDirectories: string[] = [];
@@ -100,6 +100,7 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(
     temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true })),
   );
@@ -133,6 +134,32 @@ describe('runCli', () => {
     expect(text.stdout()).not.toContain('.spec');
     expect(text.stderr()).not.toContain('example.test');
     expect(text.stderr()).toContain('src/unrelated.ts');
+  });
+
+  it('uses terminal colour, --no-color, and NO_COLOR while leaving JSON unchanged', async () => {
+    vi.stubEnv('NO_COLOR', undefined);
+    vi.stubEnv('TERM', 'xterm-256color');
+    const projectRoot = await makeProject();
+    await writeConfig(projectRoot, { sourceRoots: ['src'], coveragePath: 'coverage/data.json', coverageFormat: 'istanbul' });
+    await writeCoverage(projectRoot, 'coverage/data.json', istanbulCoverage());
+    const output = captureIo();
+    const terminal = { ...output.io, isTTY: true, columns: 80 };
+    expect(await runCli(['--use-existing-coverage'], terminal, projectRoot)).toBe(0);
+    expect(output.stdout()).toContain('\u001b[32m');
+    const plain = captureIo();
+    expect(await runCli(['--use-existing-coverage', '--no-color'], { ...plain.io, isTTY: true }, projectRoot)).toBe(0);
+    expect(plain.stdout()).not.toContain('\u001b[');
+    vi.stubEnv('NO_COLOR', '1');
+    const env = captureIo();
+    expect(await runCli(['--use-existing-coverage'], { ...env.io, isTTY: true }, projectRoot)).toBe(0);
+    expect(env.stdout()).not.toContain('\u001b[');
+    const json = captureIo();
+    expect(await runCli(['--use-existing-coverage', '--json', '--no-color'], { ...json.io, isTTY: true }, projectRoot)).toBe(0);
+    expect(JSON.parse(json.stdout())).toHaveProperty('entries');
+    expect(json.stdout()).not.toContain('\u001b[');
+    const redirected = await runProcess(process.execPath, [builtCli, '--use-existing-coverage'], projectRoot);
+    expect(redirected.stdout).not.toContain('\u001b[');
+    expect(redirected.stdout).toContain('| Function');
   });
 
   it('runs the built entry point when Node receives a symlink path', async () => {

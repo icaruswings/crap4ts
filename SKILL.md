@@ -65,7 +65,11 @@ Add `--json` when exact scores, source ranges, or structured diagnostics matter.
 
 ## Read the result
 
-The text report ranks numeric CRAP scores from highest to lowest. A high score combines complex control flow with low coverage.
+The text report uses aligned columns, terminal colours, and counts of analyzed functions, high-risk functions (CRAP >30), and functions missing coverage. It ranks numeric CRAP scores from highest to lowest. A high score combines complex control flow with low coverage.
+
+CRAP cells are green at ≤5, yellow above 5 through 30, and red above 30. Coverage cells are green at ≥80%, yellow at 50% to <80%, and red below 50%. `N/A` is grey. Colours use unrounded values and do not change exit codes.
+
+Use `--no-color` for plain reports. `NO_COLOR`, `TERM=dumb`, and redirected stdout also disable report colours. Narrow terminals may truncate names in tables or switch to wrapped labelled records; use `--json` for full names and precise values.
 
 Use Uncle Bob's published bands as guidance:
 

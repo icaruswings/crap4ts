@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { stripVTControlCharacters } from 'node:util';
+import stringWidth from 'string-width';
 import {
   formatJsonReport,
   formatTextReport,
@@ -63,21 +65,96 @@ describe('sortEntries', () => {
 });
 
 describe('formatTextReport', () => {
-  it('renders a complete fixed-width report with rounded values, N/A cells, and one final newline', () => {
-    expect(formatTextReport(result)).toBe(
-      'CRAP Report\n' +
-        '===========\n' +
-        'Function                       Module                                CC    Cov%     CRAP\n' +
-        '----------------------------------------------------------------------------------------\n' +
-        'highest                        src/billing                           12   45.0%     36.0\n' +
-        'sameScoreEarlierSource         src/account                           12   50.0%     10.0\n' +
-        'sameLineEarlierColumn          src/alpha                             12   50.0%     10.0\n' +
-        'sameColumn                     src/alpha                             12   50.0%     10.0\n' +
-        'sameName                       src/alpha                             12   50.0%     10.0\n' +
-        'unknownFirst                   src/alpha                              3    N/A       N/A\n' +
-        'unknownLater                   src/zeta                               3    N/A       N/A\n',
-    );
+  it('renders separated columns, rounded values, summary counts, and one final newline', () => {
+    const report = formatTextReport(result);
+    expect(report).toContain('| Function');
+    expect(report).toContain('| Module');
+    expect(report).toContain('Coverage');
+    expect(report).toContain('36.0');
+    expect(report).toContain('N/A');
+    expect(report).toContain('Functions: 7');
+    expect(report).toContain('High risk (>30): 1');
+    expect(report).toContain('Missing coverage: 2');
+    expect(report.indexOf('highest')).toBeLessThan(report.indexOf('sameScoreEarlierSource'));
+    expect(report.endsWith('\n')).toBe(true);
+    expect(report.endsWith('\n\n')).toBe(false);
+    expect(report).not.toContain('\u001b[');
   });
+
+  it.each([
+    { crap: 5, coverage: 80, crapCode: 32, coverageCode: 32 },
+    { crap: 5.01, coverage: 79.99, crapCode: 33, coverageCode: 33 },
+    { crap: 30, coverage: 50, crapCode: 33, coverageCode: 33 },
+    { crap: 30.01, coverage: 49.99, crapCode: 31, coverageCode: 31 },
+    { crap: 0, coverage: 0, crapCode: 32, coverageCode: 31 },
+  ])('colours numeric cells using unrounded boundaries $crap / $coverage', ({ crap, coverage, crapCode, coverageCode }) => {
+    const report = formatTextReport({ entries: [entry('name', 'src/a.ts', 1, 1, crap, coverage)], diagnostics: [] }, { color: true });
+    expect(report).toContain(`\u001b[${crapCode}m${crap.toFixed(1)}\u001b[39m`);
+    expect(report).toContain(`\u001b[${coverageCode}m${coverage.toFixed(1)}%\u001b[39m`);
+    expect(report).not.toContain('\u001b[32mname');
+  });
+
+  it('distinguishes missing coverage in grey and handles an empty report', () => {
+    expect(formatTextReport(result, { color: true })).toContain('\u001b[90mN/A\u001b[39m');
+    const empty = formatTextReport({ entries: [], diagnostics: [] });
+    expect(empty).toContain('Functions: 0');
+    expect(empty).toContain('High risk (>30): 0');
+    expect(empty).toContain('Missing coverage: 0');
+  });
+
+  it.each([60, 80, 100])('fits a %s-column terminal with long names and intact numbers', (columns) => {
+    const long = { entries: [entry('x'.repeat(120), 'src/' + 'y'.repeat(120), 1, 1, 12345.6, 100)], diagnostics: [] };
+    const report = formatTextReport(long, { columns });
+    expect(report.split('\n').every((line) => line.length <= columns)).toBe(true);
+    expect(report).toContain('12345.6');
+    expect(report).toContain('100.0%');
+    expect(report).toContain('…');
+    expect(formatTextReport(long)).toContain('x'.repeat(120));
+  });
+
+  it('keeps Unicode and coloured column separators aligned', () => {
+    const entries = [entry('処理😀', 'src/日本語.ts', 1, 1, 3, 100), entry('other', 'src/a.ts', 1, 1, 31, 20)];
+    const report = formatTextReport({ entries, diagnostics: [] }, { color: true, columns: 60 });
+    const lines = stripVTControlCharacters(report).split('\n').filter((line) => line.startsWith('|'));
+    const offsets = lines.map((line) => line.split('|').slice(0, -1).map((_, index, parts) =>
+      stringWidth(parts.slice(0, index + 1).join('|'))));
+    expect(offsets.every((row) => JSON.stringify(row) === JSON.stringify(offsets[0]))).toBe(true);
+    expect(lines.every((line) => stringWidth(line) <= 60)).toBe(true);
+  });
+
+  it('removes terminal controls and embedded newlines from names', () => {
+    const report = formatTextReport({ entries: [entry('a\u001b[31m\nb', 'src/x.ts', 1, 1, 3, 100)], diagnostics: [] });
+    expect(report).toContain('a b');
+    expect(report).not.toContain('\u001b[');
+  });
+
+  it.each([undefined, 0, -10, NaN, Infinity])('ignores unusable terminal width %s', (columns) => {
+    const options = columns === undefined ? {} : { columns };
+    expect(formatTextReport(result, options)).toBe(formatTextReport(result));
+  });
+
+  it('wraps long Unicode names in the narrow layout without losing them', () => {
+    const name = '長い名前'.repeat(20);
+    const report = formatTextReport({ entries: [entry(name, 'src/a.ts', 1, 1, 2, 100)], diagnostics: [] }, { columns: 30 });
+    expect(report).not.toContain('…');
+    expect(report.replace(/\s/g, '')).toContain(name);
+    expect(report.split('\n').every((line) => stringWidth(line) <= 30)).toBe(true);
+  });
+
+  it('uses the minimum layout width for tiny terminals and handles empty narrow reports', () => {
+    const report = formatTextReport({ entries: [], diagnostics: [] }, { columns: 1 });
+    expect(report).toContain('Functions: 0');
+    expect(report.split('\n').every((line) => stringWidth(line) <= 20)).toBe(true);
+  });
+
+  it('uses labelled records on a narrow terminal and preserves data', () => {
+    const report = formatTextReport({ entries: [entry('risk', 'src/a.ts', 1, 1, 35, 40)], diagnostics: [] }, { columns: 30 });
+    expect(report).toContain('Function: risk');
+    expect(report).toContain('Module: src/a');
+    expect(report).toContain('CRAP: 35.0');
+    expect(report.split('\n').every((line) => line.length <= 30)).toBe(true);
+  });
+
 });
 
 describe('formatJsonReport', () => {

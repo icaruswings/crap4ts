@@ -13,6 +13,7 @@ export interface CliArgs {
   useExistingCoverage: boolean;
   json: boolean;
   help: boolean;
+  noColor?: boolean;
 }
 
 interface OptionResult {
@@ -61,6 +62,11 @@ function jsonOption(args: CliArgs, _argv: string[], index: number): OptionResult
   return { nextIndex: index + 1 };
 }
 
+function noColorOption(args: CliArgs, _argv: string[], index: number): OptionResult {
+  args.noColor = true;
+  return { nextIndex: index + 1 };
+}
+
 function helpOption(args: CliArgs, _argv: string[], index: number): OptionResult {
   args.help = true;
   return { nextIndex: index + 1 };
@@ -106,6 +112,7 @@ function coverageDirectoryOption(args: CliArgs, argv: string[], index: number): 
 const optionHandlers: Record<string, OptionHandler> = {
   '--use-existing-coverage': useExistingCoverageOption,
   '--json': jsonOption,
+  '--no-color': noColorOption,
   '--help': helpOption,
   '--source-root': sourceRootOption,
   '--exclude': excludeOption,

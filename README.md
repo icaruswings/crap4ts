@@ -253,21 +253,49 @@ Library callers can pass `exclude` in `analyzeProject` options, or as the option
 | `--coverage-directory <path>` | Name an explicit project-relative directory that generated mode may remove. |
 | `--use-existing-coverage` | Read the current artifact without cleanup or command execution. |
 | `--json` | Write one JSON object instead of the text table. |
+| `--no-color` | Disable colours in the CRAP report. |
 | `--help` | Print usage information. |
 
 Except for additive `--exclude` patterns, command-line values replace matching configuration values. Repeated `--source-root` values replace the complete configured list.
 
 ## Read the reports
 
-Text output contains the function name, module, cyclomatic complexity, coverage percentage, and CRAP score. It rounds coverage and CRAP to one decimal place.
+Text output uses a table with function, module, cyclomatic complexity, coverage, and CRAP columns. Numbers are right-aligned, with coverage and CRAP rounded to one decimal place. A summary counts analyzed functions, high-risk functions (CRAP >30), and functions missing coverage.
 
 ```text
 CRAP Report
 ===========
-Function                       Module                                CC    Cov%     CRAP
-----------------------------------------------------------------------------------------
-risk                           src/example                            3   50.0%      4.1
++------------+------------+----+----------+------+
+| Function   | Module     | CC | Coverage | CRAP |
++------------+------------+----+----------+------+
+| placeOrder | src/orders | 12 |    45.0% | 36.0 |
+| receipt    | src/orders |  2 |   100.0% |  2.0 |
++------------+------------+----+----------+------+
+
+Functions: 2
+High risk (>30): 1
+Missing coverage: 0
 ```
+
+Interactive terminals colour numeric cells using these display bands:
+
+| Metric | Green | Yellow | Red |
+| --- | --- | --- | --- |
+| CRAP | ≤5 | >5 to 30 | >30 |
+| Coverage | ≥80% | 50% to <80% | <50% |
+
+`N/A` is grey. Colours and summary counts use the unrounded values. These bands are visual guidance; they do not enforce thresholds or affect exit codes. Complexity values are not colour-coded.
+
+The table adapts to the terminal width and marks truncated names or modules with `…`. Terminals narrower than 60 columns use wrapped, labelled records; the minimum layout width is 20 columns. Redirected output and default library output are plain text with full names. JSON retains full names and values in every environment.
+
+Use `--no-color`, set `NO_COLOR` (including an empty value), or use `TERM=dumb` to disable report colour. Redirecting stdout also disables colour automatically. These settings affect this report; the project's coverage command controls its own output.
+
+```sh
+crap4ts --no-color
+crap4ts --json > report.json
+```
+
+Library callers can pass `{ color: true, columns: 80 }` as the second argument to `formatTextReport`. Without options, its output is deterministic, uncoloured, and not width-limited.
 
 The report sorts numeric CRAP scores from highest to lowest. Source path and source position break ties. Entries with `N/A` scores come after numeric scores.
 

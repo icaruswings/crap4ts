@@ -1,42 +1,17 @@
 import type { AnalysisResult } from '../analysis/analyze-project.js';
-import type { CrapEntry } from '../model.js';
+import { reportCells, reportSummary } from './report-cells.js';
 import { sortEntries } from './sort-entries.js';
+import wrapAnsi from 'wrap-ansi';
+import { terminalColumns, textTable } from './text-table.js';
 
-const functionWidth = 30;
-const moduleWidth = 35;
-const complexityWidth = 4;
-const coverageWidth = 7;
-const crapWidth = 8;
-
-export function formatTextReport(result: AnalysisResult): string {
-  const header = formatRow('Function', 'Module', 'CC', 'Cov%', 'CRAP');
-  const lines = sortEntries(result.entries).map(formatEntry);
-
-  return ['CRAP Report', '===========', header, '-'.repeat(header.length), ...lines, ''].join('\n');
+export interface TextReportOptions {
+  color?: boolean;
+  columns?: number;
 }
 
-function formatEntry(entry: CrapEntry): string {
-  return formatRow(
-    entry.name,
-    entry.module,
-    String(entry.complexity),
-    entry.coverage === null ? ' N/A ' : `${entry.coverage.toFixed(1)}%`,
-    entry.crap === null ? ' N/A' : entry.crap.toFixed(1),
-  );
-}
-
-function formatRow(
-  name: string,
-  module: string,
-  complexity: string,
-  coverage: string,
-  crap: string,
-): string {
-  return [
-    name.padEnd(functionWidth),
-    module.padEnd(moduleWidth),
-    complexity.padStart(complexityWidth),
-    coverage.padStart(coverageWidth),
-    crap.padStart(crapWidth),
-  ].join(' ');
+export function formatTextReport(result: AnalysisResult, options: TextReportOptions = {}): string {
+  const entries = sortEntries(result.entries);
+  const rows = entries.map((entry) => reportCells(entry, options.color ?? false));
+  const summary = wrapAnsi(reportSummary(entries), terminalColumns(options.columns) ?? 100, { hard: true });
+  return ['CRAP Report', '===========', textTable(rows, options.columns), '', summary, ''].join('\n');
 }

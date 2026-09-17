@@ -52,8 +52,11 @@
     "mutation": "stryker run"
   },
   "dependencies": {
+    "cli-table3": "0.6.5",
     "picomatch": "4.0.7",
-    "typescript": "6.0.3"
+    "string-width": "8.2.2",
+    "typescript": "6.0.3",
+    "wrap-ansi": "10.0.1"
   },
   "devDependencies": {
     "@stryker-mutator/core": "10.0.0",

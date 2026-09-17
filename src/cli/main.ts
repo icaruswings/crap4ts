@@ -13,7 +13,8 @@ import type { CoverageArtifact } from '../coverage/model.js';
 import { Crap4tsError, UsageError } from '../errors.js';
 import type { Diagnostic } from '../model.js';
 import { formatJsonReport } from '../report/format-json.js';
-import { formatTextReport } from '../report/format-text.js';
+import { formatTextReport, type TextReportOptions } from '../report/format-text.js';
+import { reportStyle, type ReportTerminal } from './report-style.js';
 import { TOOL_VERSION } from '../version.js';
 import { parseArgs } from './parse-args.js';
 import { prepareCoverage } from './prepare-coverage.js';
@@ -33,10 +34,11 @@ Options:
   --coverage-directory <path>  Explicit disposable coverage directory.
   --use-existing-coverage      Analyze the current artifact without generating it.
   --json                       Write one JSON report instead of text.
+  --no-color                   Disable report colours.
   --help                       Show this help.
 `;
 
-export interface CliIo {
+export interface CliIo extends ReportTerminal {
   stdout: (text: string) => void;
   stderr: (text: string) => void;
 }
@@ -44,6 +46,8 @@ export interface CliIo {
 const processIo: CliIo = {
   stdout: (text) => process.stdout.write(text),
   stderr: (text) => process.stderr.write(text),
+  get isTTY() { return process.stdout.isTTY === true; },
+  get columns() { return process.stdout.columns; },
 };
 
 type AnalyzeOptions = Extract<ResolvedOptions, { action: 'analyze' }>;
@@ -72,7 +76,7 @@ export async function runCli(
     }
 
     const analysis = await analyzeFromOptions(options, projectRoot);
-    writeReport(options, analysis, io);
+    writeReport(options, analysis, io, reportStyle(io, args.noColor));
 
     return 0;
   } catch (error) {
@@ -99,7 +103,9 @@ async function analyzeFromOptions(
   return { coverage, result };
 }
 
-function writeReport(options: AnalyzeOptions, analysis: CliAnalysis, io: CliIo): void {
+function writeReport(
+  options: AnalyzeOptions, analysis: CliAnalysis, io: CliIo, style: TextReportOptions,
+): void {
   if (options.json) {
     io.stdout(formatJsonReport({
       toolVersion: TOOL_VERSION,
@@ -113,7 +119,7 @@ function writeReport(options: AnalyzeOptions, analysis: CliAnalysis, io: CliIo):
     return;
   }
 
-  io.stdout(formatTextReport(analysis.result));
+  io.stdout(formatTextReport(analysis.result, style));
   for (const diagnostic of analysis.result.diagnostics) io.stderr(formatDiagnostic(diagnostic));
 }
 
