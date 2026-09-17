@@ -44,6 +44,28 @@ describe('findSourceFiles', () => {
     ]);
   });
 
+  it('excludes colocated tests, nested test directories, and dot directories with globs', async () => {
+    const projectRoot = await makeProject();
+    const paths = ['src/kept.ts', 'src/test-helper.ts', 'src/button.test.tsx',
+      'src/deep/file.spec.ts', 'src/__tests__/nested/helper.ts', 'src/.hidden/a.test.ts'];
+    await Promise.all(paths.map((path) => writeProjectFile(projectRoot, path)));
+
+    await expect(findSourceFiles(projectRoot, ['src', 'src/deep'], [], [
+      '**/*.{test,spec}.{ts,tsx}', '**/__tests__/**',
+    ])).resolves.toEqual(['src/kept.ts', 'src/test-helper.ts']);
+    await expect(findSourceFiles(projectRoot, ['src'], ['test'], ['**/*.test.*', '**/__tests__/**']))
+      .resolves.toEqual(['src/test-helper.ts']);
+    await expect(findSourceFiles(projectRoot, ['src'], [], []))
+      .resolves.toEqual([...paths].sort());
+  });
+
+  it('reports exclusions when they remove every source file', async () => {
+    const projectRoot = await makeProject();
+    await writeProjectFile(projectRoot, 'src/example.test.ts');
+    await expect(findSourceFiles(projectRoot, ['src'], [], ['**/*.test.ts']))
+      .rejects.toThrow('**/*.test.ts');
+  });
+
   it('applies filters as OR substrings to POSIX project-relative paths', async () => {
     const projectRoot = await makeProject();
     await Promise.all([

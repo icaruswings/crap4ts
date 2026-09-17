@@ -45,6 +45,22 @@ describe('parseArgs', () => {
     });
   });
 
+  it('appends repeated CLI exclusions to configured exclusions without mutation', () => {
+    const config = { ...completeConfig, exclude: ['**/*.spec.ts'] };
+    const args = parseArgs(['--exclude', '**/*.test.ts', '--exclude', '**/__tests__/**']);
+    expect(args.exclude).toEqual(['**/*.test.ts', '**/__tests__/**']);
+    expect(resolveOptions(config, args)).toMatchObject({
+      exclude: ['**/*.spec.ts', '**/*.test.ts', '**/__tests__/**'],
+    });
+    expect(config.exclude).toEqual(['**/*.spec.ts']);
+    expect(resolveOptions(completeConfig, parseArgs([]))).toMatchObject({ exclude: [] });
+  });
+
+  it.each(['', ' ', '/tmp/**', 'C:/src/**', '../**', '!src/keep.ts'])
+    ('rejects invalid exclusion %j', (pattern) => {
+      expect(() => parseArgs(['--exclude', pattern])).toThrow(UsageError);
+    });
+
   it('returns explicit defaults when no arguments are present', () => {
     expect(parseArgs([])).toEqual({
       filters: [],
@@ -56,6 +72,7 @@ describe('parseArgs', () => {
 
   it.each([
     '--source-root',
+    '--exclude',
     '--coverage-command',
     '--coverage',
     '--coverage-format',
@@ -108,6 +125,7 @@ describe('resolveOptions', () => {
 
     expect(resolveOptions(completeConfig, args)).toEqual({
       action: 'analyze',
+      exclude: [],
       coverageMode: 'generated',
       sourceRoots: ['src', 'packages/web/src'],
       filters: ['orders', 'billing'],
@@ -122,6 +140,7 @@ describe('resolveOptions', () => {
   it('uses configured values when command-line values are absent', () => {
     expect(resolveOptions(completeConfig, parseArgs([]))).toEqual({
       action: 'analyze',
+      exclude: [],
       coverageMode: 'generated',
       sourceRoots: ['configured-src'],
       filters: [],
@@ -144,6 +163,7 @@ describe('resolveOptions', () => {
 
     expect(resolveOptions(completeConfig, args)).toEqual({
       action: 'analyze',
+      exclude: [],
       coverageMode: 'existing',
       sourceRoots: ['configured-src'],
       filters: [],

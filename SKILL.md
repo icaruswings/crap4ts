@@ -51,6 +51,16 @@ Add positional path filters to limit the report. Multiple filters use OR matchin
 crap4ts orders billing
 ```
 
+To exclude colocated tests or generated files from analysis, add an `exclude` array to the config when setup is authorized. For example: `["**/*.{test,spec}.{ts,tsx}", "**/__tests__/**", "src/generated/**"]`.
+
+For a report-only invocation, use quoted CLI globs:
+
+```sh
+crap4ts --exclude '**/*.{test,spec}.{ts,tsx}' --exclude '**/__tests__/**'
+```
+
+Patterns use project-relative paths and forward slashes. CLI patterns append to configured exclusions. No test files are excluded by default. Exclusions affect analysis and matching unused-coverage diagnostics, not which tests the coverage command runs. They do not bypass source-directory traversal errors. Do not add exclusions merely to hide risky production functions.
+
 Add `--json` when exact scores, source ranges, or structured diagnostics matter.
 
 ## Read the result

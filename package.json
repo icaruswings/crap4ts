@@ -52,12 +52,14 @@
     "mutation": "stryker run"
   },
   "dependencies": {
+    "picomatch": "4.0.7",
     "typescript": "6.0.3"
   },
   "devDependencies": {
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.2.0",
+    "@types/picomatch": "4.0.3",
     "@vitest/coverage-v8": "4.1.11",
     "vitest": "4.1.11"
   }

@@ -1,9 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { isAbsolute, join, win32 } from 'node:path';
 import { ConfigError } from '../errors.js';
+import { exclusionPattern } from '../files/source-exclusions.js';
 
 export interface ProjectConfig {
   sourceRoots: string[];
+  exclude?: string[];
   coverageCommand?: string;
   coveragePath?: string;
   coverageFormat?: 'lcov' | 'istanbul';
@@ -13,6 +15,7 @@ export interface ProjectConfig {
 const CONFIG_FILENAME = 'crap4ts.config.json';
 const CONFIG_KEYS = new Set([
   'sourceRoots',
+  'exclude',
   'coverageCommand',
   'coveragePath',
   'coverageFormat',
@@ -53,6 +56,11 @@ function sourceRoots(value: unknown): string[] {
   return value.map((root) => relativePath(root, 'sourceRoots entries'));
 }
 
+function exclusions(value: unknown): string[] {
+  if (!Array.isArray(value)) throw new ConfigError('exclude must be an array');
+  return value.map(exclusionPattern);
+}
+
 function coverageFormat(value: unknown): 'lcov' | 'istanbul' {
   if (value !== 'lcov' && value !== 'istanbul') {
     throw new ConfigError('coverageFormat must be "lcov" or "istanbul"');
@@ -68,6 +76,7 @@ function optionalField<Key extends keyof ParsedOptionalConfig>(
 }
 
 const OPTIONAL_FIELDS = [
+  optionalField('exclude', exclusions),
   optionalField('coverageCommand', (value) => nonEmptyString(value, 'coverageCommand')),
   optionalField('coveragePath', (value) => relativePath(value, 'coveragePath')),
   optionalField('coverageFormat', coverageFormat),

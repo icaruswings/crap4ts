@@ -9,6 +9,7 @@ export interface HelpOptions {
 interface AnalyzeOptions {
   action: 'analyze';
   sourceRoots: string[];
+  exclude?: string[];
   filters: string[];
   coveragePath: string;
   coverageFormat: 'lcov' | 'istanbul';
@@ -39,10 +40,15 @@ function commonOptions(config: ProjectConfig, args: CliArgs): AnalyzeOptions {
     action: 'analyze',
     sourceRoots: [...(args.sourceRoots ?? config.sourceRoots)],
     filters: [...args.filters],
+    exclude: combinedExclusions(config, args),
     coveragePath: requiredValue(args.coveragePath ?? config.coveragePath, 'coveragePath'),
     coverageFormat: requiredValue(args.coverageFormat ?? config.coverageFormat, 'coverageFormat'),
     json: args.json,
   };
+}
+
+function combinedExclusions(config: ProjectConfig, args: CliArgs): string[] {
+  return [...(config.exclude ?? []), ...(args.exclude ?? [])];
 }
 
 function existingOptions(common: AnalyzeOptions): ExistingCoverageOptions {

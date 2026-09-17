@@ -26,6 +26,7 @@ Calculate cyclomatic complexity and coverage-weighted CRAP scores for TypeScript
 
 Options:
   --source-root <path>          Source root. Repeat to provide more than one.
+  --exclude <glob>             Exclude source paths. Repeat to add to config exclusions.
   --coverage-command <command> Command that generates coverage.
   --coverage <path>            Project-relative coverage artifact path.
   --coverage-format <format>   Coverage format: istanbul or lcov.
@@ -92,6 +93,7 @@ async function analyzeFromOptions(
     projectRoot,
     sourceRoots: options.sourceRoots,
     filters: options.filters,
+    exclude: options.exclude ?? [],
     coverage,
   });
   return { coverage, result };

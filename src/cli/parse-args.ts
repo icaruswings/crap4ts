@@ -1,9 +1,11 @@
 import { isAbsolute, win32 } from 'node:path';
 import { UsageError } from '../errors.js';
+import { exclusionPattern } from '../files/source-exclusions.js';
 
 export interface CliArgs {
   filters: string[];
   sourceRoots?: string[];
+  exclude?: string[];
   coverageCommand?: string;
   coveragePath?: string;
   coverageFormat?: 'lcov' | 'istanbul';
@@ -71,6 +73,12 @@ function sourceRootOption(args: CliArgs, argv: string[], index: number): OptionR
   return { nextIndex: index + 2 };
 }
 
+function excludeOption(args: CliArgs, argv: string[], index: number): OptionResult {
+  const pattern = exclusionPattern(optionValue(argv, index, '--exclude'));
+  args.exclude = [...(args.exclude ?? []), pattern];
+  return { nextIndex: index + 2 };
+}
+
 function coverageCommandOption(args: CliArgs, argv: string[], index: number): OptionResult {
   const flag = argv[index]!;
   args.coverageCommand = nonEmptyValue(optionValue(argv, index, flag), flag);
@@ -100,6 +108,7 @@ const optionHandlers: Record<string, OptionHandler> = {
   '--json': jsonOption,
   '--help': helpOption,
   '--source-root': sourceRootOption,
+  '--exclude': excludeOption,
   '--coverage-command': coverageCommandOption,
   '--coverage': coveragePathOption,
   '--coverage-format': coverageFormatOption,

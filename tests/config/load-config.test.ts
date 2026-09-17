@@ -43,6 +43,19 @@ describe('loadConfig', () => {
     });
   });
 
+  it.each([{ exclude: [] }, { exclude: ['**/*.test.ts', '**/__tests__/**'] }])('accepts exclusions $exclude', async ({ exclude }) => {
+    const projectRoot = await temporaryProject();
+    await writeConfig(projectRoot, { sourceRoots: ['src'], exclude });
+    await expect(loadConfig(projectRoot)).resolves.toEqual({ sourceRoots: ['src'], exclude });
+  });
+
+  it.each([null, '**/*.test.ts', [7], [''], ['  '], ['/tmp/**'], ['C:/src/**'],
+    ['../outside/**'], ['src/../**'], ['!src/keep.ts'], ['src/[bad'], ['src/('], ['src\\test.ts']].map((exclude) => ({ exclude })))('rejects invalid exclusions $exclude', async ({ exclude }) => {
+    const projectRoot = await temporaryProject();
+    await writeConfig(projectRoot, { sourceRoots: ['src'], exclude });
+    await expect(loadConfig(projectRoot)).rejects.toBeInstanceOf(ConfigError);
+  });
+
   it('uses the default source root when the project config is missing', async () => {
     const parentRoot = await temporaryProject();
     const projectRoot = join(parentRoot, 'nested');

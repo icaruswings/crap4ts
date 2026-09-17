@@ -3,6 +3,7 @@ import { lstat, readdir, realpath } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { ConfigError, NoSourceFilesError, SourceTraversalError } from '../errors.js';
 import { normalizePath, toProjectRelative } from '../paths/normalize-path.js';
+import { sourceExclusion } from './source-exclusions.js';
 
 function isWithinProject(projectRoot: string, candidate: string): boolean {
   const pathFromProject = relative(projectRoot, candidate);
@@ -131,12 +132,17 @@ function matchingSourceFiles(sourceFiles: Set<string>, filters: string[]): strin
     .sort();
 }
 
-function noSourceFilesError(sourceRoots: string[], filters: string[]): NoSourceFilesError {
+function noSourceFilesError(
+  sourceRoots: string[],
+  filters: string[],
+  exclude: string[],
+): NoSourceFilesError {
   const roots = sourceRoots.length === 0 ? '(none)' : sourceRoots.join(', ');
   const configuredFilters = filters.length === 0 ? '(none)' : filters.join(', ');
+  const exclusions = exclude.join(', ') || '(none)';
 
   return new NoSourceFilesError(
-    `No TypeScript source files found for source roots: ${roots}; filters: ${configuredFilters}`,
+    `No TypeScript source files found for source roots: ${roots}; filters: ${configuredFilters}; exclude: ${exclusions}`,
   );
 }
 
@@ -144,7 +150,9 @@ export async function findSourceFiles(
   projectRoot: string,
   sourceRoots: string[],
   filters: string[],
+  exclude: string[] = [],
 ): Promise<string[]> {
+  const isExcluded = sourceExclusion(exclude);
   const resolvedProjectRoot = await resolveProjectRoot(projectRoot);
   const resolvedSourceRoots = await Promise.all(
     sourceRoots.map((sourceRoot) => resolveSourceRoot(resolvedProjectRoot, sourceRoot)),
@@ -155,10 +163,10 @@ export async function findSourceFiles(
     await walkSourceRoot(resolvedProjectRoot.lexical, sourceRoot, sourceFiles);
   }
 
-  const matchingFiles = matchingSourceFiles(sourceFiles, filters);
+  const matchingFiles = matchingSourceFiles(sourceFiles, filters).filter((path) => !isExcluded(path));
 
   if (matchingFiles.length === 0) {
-    throw noSourceFilesError(sourceRoots, filters);
+    throw noSourceFilesError(sourceRoots, filters, exclude);
   }
 
   return matchingFiles;

@@ -106,6 +106,35 @@ afterEach(async () => {
 });
 
 describe('runCli', () => {
+  it('combines config and CLI exclusions before analysis in text and JSON reports', async () => {
+    const projectRoot = await makeProject();
+    await writeFile(join(projectRoot, 'src/example.test.ts'), sourceText);
+    await writeFile(join(projectRoot, 'src/example.spec.ts'), sourceText);
+    await writeConfig(projectRoot, {
+      sourceRoots: ['src'], exclude: ['**/*.spec.ts'],
+      coveragePath: 'coverage/lcov.info', coverageFormat: 'lcov',
+    });
+    await writeCoverage(projectRoot, 'coverage/lcov.info', [
+      'src/example.ts', join(projectRoot, 'src/example.test.ts'),
+      'src/example.spec.ts', 'src/unrelated.ts',
+    ].map((source) => `SF:${source}\nDA:2,1\nend_of_record`).join('\n'));
+
+    const json = captureIo();
+    expect(await runCli(['--use-existing-coverage', '--exclude', '**/*.test.ts', '--json'], json.io, projectRoot)).toBe(0);
+    const built = await runProcess(process.execPath, [builtCli, '--use-existing-coverage', '--exclude', '**/*.test.ts', '--json'], projectRoot);
+    expect(JSON.parse(built.stdout)).toEqual(JSON.parse(json.stdout()));
+    const report = JSON.parse(json.stdout());
+    expect(report.entries.map((entry: { source: string }) => entry.source)).toEqual(['src/example.ts']);
+    expect(report.diagnostics.map((diagnostic: { source: string }) => diagnostic.source)).toEqual(['src/unrelated.ts']);
+    const text = captureIo();
+    expect(await runCli(['--use-existing-coverage', '--exclude', '**/*.test.ts'], text.io, projectRoot)).toBe(0);
+    expect(text.stdout()).toContain('src/example');
+    expect(text.stdout()).not.toContain('.test');
+    expect(text.stdout()).not.toContain('.spec');
+    expect(text.stderr()).not.toContain('example.test');
+    expect(text.stderr()).toContain('src/unrelated.ts');
+  });
+
   it('runs the built entry point when Node receives a symlink path', async () => {
     const projectRoot = await makeProject();
     const linkedCli = join(projectRoot, 'linked-crap4ts.mjs');

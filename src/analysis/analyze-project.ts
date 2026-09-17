@@ -7,6 +7,7 @@ import type { CoverageMeasurement } from '../coverage/measure-function.js';
 import type { CoverageArtifact, CoverageFile } from '../coverage/model.js';
 import { SourceReadError } from '../errors.js';
 import { findSourceFiles } from '../files/find-source-files.js';
+import { sourceExclusion } from '../files/source-exclusions.js';
 import type { CrapEntry, Diagnostic, FunctionInfo } from '../model.js';
 import { toProjectDiagnosticPath } from '../paths/normalize-path.js';
 import { crapScore } from '../scorer.js';
@@ -15,6 +16,7 @@ export interface AnalyzeProjectOptions {
   projectRoot: string;
   sourceRoots: string[];
   filters: string[];
+  exclude?: string[];
   coverage: CoverageArtifact;
 }
 
@@ -55,8 +57,11 @@ function unmatchedCoverageDiagnostics(
   projectRoot: string,
   files: CoverageFile[],
   matched: Set<CoverageFile>,
+  exclude: string[] = [],
 ): Diagnostic[] {
+  const isExcluded = sourceExclusion(exclude);
   return files
+    .filter((file) => !isExcluded(toProjectDiagnosticPath(projectRoot, file.sourcePath)))
     .filter((file) => !matched.has(file))
     .map((file) => unmatchedCoverageFile(projectRoot, file));
 }
@@ -85,7 +90,9 @@ async function analyzeSource(
 }
 
 export async function analyzeProject(options: AnalyzeProjectOptions): Promise<AnalysisResult> {
-  const sources = await findSourceFiles(options.projectRoot, options.sourceRoots, options.filters);
+  const sources = await findSourceFiles(
+    options.projectRoot, options.sourceRoots, options.filters, options.exclude,
+  );
   const entries: CrapEntry[] = [];
   const diagnostics: Diagnostic[] = [];
   const matchedCoverageFiles = new Set<CoverageFile>();
@@ -103,6 +110,7 @@ export async function analyzeProject(options: AnalyzeProjectOptions): Promise<An
     options.projectRoot,
     options.coverage.files,
     matchedCoverageFiles,
+    options.exclude,
   ));
 
   return { entries, diagnostics };

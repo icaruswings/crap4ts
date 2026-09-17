@@ -152,6 +152,7 @@ The CLI reads `crap4ts.config.json` from the current project directory. It does 
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `sourceRoots` | Yes | Project-relative TypeScript source directories. |
+| `exclude` | No | Array of project-relative source exclusion globs. Defaults to `[]`. |
 | `coverageCommand` | Generated mode | Command that creates the coverage artifact. |
 | `coveragePath` | Yes | Project-relative Istanbul or LCOV artifact path. |
 | `coverageFormat` | Yes | `istanbul` or `lcov`. |
@@ -205,11 +206,47 @@ crap4ts orders billing
 
 This command includes a source path when it contains `orders` or `billing`.
 
+## Exclude test files and generated code
+
+Add `exclude` to `crap4ts.config.json` to omit files from source analysis:
+
+```json
+{
+  "sourceRoots": ["src"],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**",
+    "src/generated/**"
+  ],
+  "coverageCommand": "pnpm coverage",
+  "coveragePath": "coverage/coverage-final.json",
+  "coverageFormat": "istanbul"
+}
+```
+
+Patterns match the complete project-relative path, using `/` separators on every operating system. Use `*` within a path segment, `**` across directories, `?` for one character, `[ab]` for character classes, and braces for alternatives such as `**/*.{test,spec}.{ts,tsx}`. Patterns also match dot files and dot directories. Absolute paths, parent (`..`) segments, backslash separators, and leading `!` negation are rejected. Use `directory/**` to exclude a directory's contents.
+
+Add temporary exclusions with a repeatable CLI option. Quote each glob so the shell passes it unchanged:
+
+```sh
+crap4ts --exclude '**/*.test.ts' --exclude '**/__tests__/**'
+```
+
+CLI exclusions append to configured exclusions. A file must pass the source-root and positional-filter selection, then match none of the exclusion patterns. With no exclusions, test files remain eligible for analysis. If no files remain, the CLI reports the roots, filters, and exclusions and exits with code 2.
+
+Exclusions affect source analysis, not the coverage command or which tests execute. Coverage records whose project-relative paths match an exclusion do not produce `UNMATCHED_COVERAGE_FILE` diagnostics. Other unmatched records are still reported. Source discovery still traverses the configured roots, so exclusions do not bypass directory permission errors.
+
+Library callers can pass `exclude` in `analyzeProject` options, or as the optional fourth argument to `findSourceFiles`.
+
 ## CLI options
 
 | Option | Meaning |
 | --- | --- |
 | `--source-root <path>` | Replace configured source roots. Repeat the option to add roots. |
+| `--exclude <glob>` | Append a source exclusion glob. Repeat to add more. |
 | `--coverage-command <command>` | Replace the configured command for generated mode. |
 | `--coverage <path>` | Replace the project-relative coverage artifact path. |
 | `--coverage-format <format>` | Select `istanbul` or `lcov`. |
@@ -218,7 +255,7 @@ This command includes a source path when it contains `orders` or `billing`.
 | `--json` | Write one JSON object instead of the text table. |
 | `--help` | Print usage information. |
 
-Command-line values replace matching configuration values. Repeated `--source-root` values replace the complete configured list.
+Except for additive `--exclude` patterns, command-line values replace matching configuration values. Repeated `--source-root` values replace the complete configured list.
 
 ## Read the reports
 
