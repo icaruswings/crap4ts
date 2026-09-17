@@ -117,7 +117,7 @@ describe('formatJsonReport', () => {
   "schemaVersion": 1,
   "tool": {
     "name": "crap4ts",
-    "version": "0.1.0"
+    "version": "${TOOL_VERSION}"
   },
   "coverage": {
     "format": "lcov",

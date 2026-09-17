@@ -1,6 +1,6 @@
 {
   "name": "@icaruswings138/crap4ts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CRAP scores for TypeScript and TSX using cyclomatic complexity and test coverage.",
   "license": "MIT",
   "repository": {
