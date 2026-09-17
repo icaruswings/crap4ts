@@ -22,25 +22,18 @@ A low score does not prove that the system has good names, module boundaries, or
 
 The CLI requires Node.js 20.19 or later.
 
-The package is currently hosted on GitHub Packages. GitHub requires authentication even for public npm packages. Create a personal access token (classic) with `read:packages`, then log in using your GitHub username and the token as the password:
-
-```sh
-npm login --scope=@icaruswings --auth-type=legacy --registry=https://npm.pkg.github.com
-npm config set @icaruswings:registry https://npm.pkg.github.com --location=user
-```
-
-Do not put your token in a committed project file. See [GitHub's npm registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry) for authentication details.
+Install from npm. No registry login is required to install this public package.
 
 Install the CLI globally:
 
 ```sh
-npm install --global @icaruswings/crap4ts
+npm install --global @icaruswings138/crap4ts
 ```
 
 Or install it as a development dependency in the project that you want to analyze:
 
 ```sh
-npm install --save-dev @icaruswings/crap4ts
+npm install --save-dev @icaruswings138/crap4ts
 npx crap4ts --help
 ```
 

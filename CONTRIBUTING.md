@@ -52,11 +52,11 @@ pnpm verify:full
 
 Full verification also runs the mutation test suite. The mutation score must meet the configured 80 percent threshold.
 
-## Publish to GitHub Packages
+## Publish to npm
 
-The package is published to GitHub Packages as `@icaruswings/crap4ts`. The executable remains `crap4ts`.
+The package is published to npm as `@icaruswings138/crap4ts`. The executable remains `crap4ts`.
 
-Keep the version in `package.json` and `src/version.ts` in sync for each release. Each published version must be unique.
+Keep the version in `package.json` and `src/version.ts` in sync for each release. Each published version must be unique on npm.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -64,15 +64,28 @@ pnpm verify
 npm pack --dry-run
 ```
 
-Push the changes, then run **Publish GitHub Package** from the repository's Actions tab on `main`. The workflow also runs when a GitHub release is published. Release tags must match the package version, for example `v0.1.0`. Use one trigger per version.
+For the first npm release, log in with an account that can publish under `@icaruswings138`, then publish locally:
 
-The workflow installs locked dependencies, runs verification and type checks, and publishes using the built-in `GITHUB_TOKEN`. No npm account or additional publishing secret is needed.
+```sh
+npm login --registry=https://registry.npmjs.org/
+npm publish
+```
 
-GitHub initially creates packages with private visibility. After the first publication, open the package settings and change its visibility to public to allow other GitHub users to install it. Consumers still need GitHub authentication.
+After the first release, configure a GitHub Actions trusted publisher in the npm package settings:
 
-Packing and publishing run the build automatically. The package includes compiled JavaScript, type declarations, source maps, TypeScript sources, the agent skill, and documentation. Tests, coverage output, and local configuration are excluded. The publishing registry is set in `package.json`.
+- Organization or user: `icaruswings`
+- Repository: `crap4ts`
+- Workflow filename: `publish-package.yml`
+- Environment: leave blank
+- Allow direct publishing with `npm publish`
 
-To move publication to npm later, change `publishConfig.registry` to `https://registry.npmjs.org/` and configure npm authentication. Consumers must also remove or update their `@icaruswings:registry` setting.
+See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for setup details. The workflow requires npm 11.5.1 or later, provided by the current Node.js 24 installation. No stored npm token is needed.
+
+For later releases, push the version changes, then run **Publish npm Package** from the repository's Actions tab on `main`. The workflow also runs when a GitHub release is published. Release tags must match the package version, for example `v0.1.1`. Use one trigger per version.
+
+The workflow installs locked dependencies, runs verification and type checks, and publishes using npm's trusted publishing connection. Configure that connection before triggering the workflow.
+
+Packing and publishing run the build automatically. The package includes compiled JavaScript, type declarations, source maps, TypeScript sources, the agent skill, and documentation. Tests, coverage output, and local configuration are excluded. Public access and the npm registry are set in `package.json`.
 
 ## Open a pull request
 

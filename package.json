@@ -1,5 +1,5 @@
 {
-  "name": "@icaruswings/crap4ts",
+  "name": "@icaruswings138/crap4ts",
   "version": "0.1.0",
   "description": "CRAP scores for TypeScript and TSX using cyclomatic complexity and test coverage.",
   "license": "MIT",
@@ -11,7 +11,7 @@
   "bugs": "https://github.com/icaruswings/crap4ts/issues",
   "publishConfig": {
     "access": "public",
-    "registry": "https://npm.pkg.github.com/"
+    "registry": "https://registry.npmjs.org/"
   },
   "files": [
     "dist",
@@ -32,7 +32,7 @@
     }
   },
   "bin": {
-    "crap4ts": "./dist/cli/main.js"
+    "crap4ts": "dist/cli/main.js"
   },
   "exports": {
     ".": {
