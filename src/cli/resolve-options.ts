@@ -7,6 +7,7 @@ export interface HelpOptions {
 }
 
 interface AnalyzeOptions {
+  threshold?: number;
   action: 'analyze';
   sourceRoots: string[];
   exclude?: string[];
@@ -37,6 +38,7 @@ function requiredValue<T>(value: T | undefined, name: string): T {
 
 function commonOptions(config: ProjectConfig, args: CliArgs): AnalyzeOptions {
   return {
+    ...thresholdOption(config, args),
     action: 'analyze',
     sourceRoots: [...(args.sourceRoots ?? config.sourceRoots)],
     filters: [...args.filters],
@@ -45,6 +47,11 @@ function commonOptions(config: ProjectConfig, args: CliArgs): AnalyzeOptions {
     coverageFormat: requiredValue(args.coverageFormat ?? config.coverageFormat, 'coverageFormat'),
     json: args.json,
   };
+}
+
+function thresholdOption(config: ProjectConfig, args: CliArgs): { threshold?: number } {
+  const threshold = args.threshold ?? config.threshold;
+  return threshold === undefined ? {} : { threshold };
 }
 
 function combinedExclusions(config: ProjectConfig, args: CliArgs): string[] {

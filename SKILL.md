@@ -63,6 +63,10 @@ Patterns use project-relative paths and forward slashes. CLI patterns append to 
 
 Add `--json` when exact scores, source ranges, or structured diagnostics matter.
 
+When the user wants a score gate, use `crap4ts --threshold 5` or configure `"threshold": 5`. The CLI value overrides configuration. This is an inclusive maximum per function: 5 passes, while 5.1 or 6 fails. Checks use unrounded scores and apply only to analyzed functions after filters and exclusions. No threshold is enabled by default.
+
+A breach prints the complete report and exits with code 3. Each violating function has a `CRAP_THRESHOLD_EXCEEDED` diagnostic (text stderr or the JSON `diagnostics` array). `N/A` entries do not breach the threshold; resolve their coverage diagnostics before treating a passing run as complete evidence. Exit codes 1 and 2 still identify operational failures and invalid arguments/configuration, respectively.
+
 ## Read the result
 
 The text report uses aligned columns, terminal colours, and counts of analyzed functions, high-risk functions (CRAP >30), and functions missing coverage. It ranks numeric CRAP scores from highest to lowest. A high score combines complex control flow with low coverage.

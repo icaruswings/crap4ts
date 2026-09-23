@@ -13,6 +13,14 @@ const completeConfig: ProjectConfig = {
 };
 
 describe('parseArgs', () => {
+  it.each(['0', '6', '5.95'])('accepts a CRAP threshold of %s', (value) => {
+    expect(parseArgs(['--threshold', value])).toMatchObject({ threshold: Number(value) });
+  });
+
+  it.each(['', ' ', '-1', 'NaN', 'Infinity', 'six', '6oops'])('rejects invalid CRAP threshold %j', (value) => {
+    expect(() => parseArgs(['--threshold', value])).toThrow(UsageError);
+  });
+
   it('parses positional OR filters and every approved option', () => {
     expect(parseArgs([
       'orders',
@@ -84,6 +92,7 @@ describe('parseArgs', () => {
     '--coverage',
     '--coverage-format',
     '--coverage-directory',
+    '--threshold',
   ])('rejects a missing value for %s', (flag) => {
     expect(() => parseArgs([flag])).toThrow(UsageError);
     expect(() => parseArgs([flag, '--json'])).toThrow(UsageError);

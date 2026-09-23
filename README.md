@@ -92,7 +92,7 @@ Use [Uncle Bob's published bands](https://github.com/unclebob/crap4clj#crap-form
 | 5-30 | Moderate. Consider focused tests or refactoring. |
 | 30+ | High. The function is complex and under-tested. |
 
-The published bands overlap at 5 and 30. Treat them as approximate guidance. This release reports scores but does not enforce a threshold.
+The published bands overlap at 5 and 30. Treat them as approximate guidance. Use an explicit `threshold` to enforce a maximum acceptable score.
 
 ## Recommended workflow
 
@@ -153,6 +153,7 @@ The CLI reads `crap4ts.config.json` from the current project directory. It does 
 | --- | --- | --- |
 | `sourceRoots` | Yes | Project-relative TypeScript source directories. |
 | `exclude` | No | Array of project-relative source exclusion globs. Defaults to `[]`. |
+| `threshold` | No | Maximum acceptable CRAP score per function. A finite, non-negative number; omitted by default. |
 | `coverageCommand` | Generated mode | Command that creates the coverage artifact. |
 | `coveragePath` | Yes | Project-relative Istanbul or LCOV artifact path. |
 | `coverageFormat` | Yes | `istanbul` or `lcov`. |
@@ -241,12 +242,29 @@ Exclusions affect source analysis, not the coverage command or which tests execu
 
 Library callers can pass `exclude` in `analyzeProject` options, or as the optional fourth argument to `findSourceFiles`.
 
+## Fail on high CRAP scores
+
+Set an inclusive maximum with `--threshold`:
+
+```sh
+crap4ts --threshold 5
+```
+
+A score of 5 passes; 5.1 or 6 fails. The comparison uses the full, unrounded score, so 5.01 also fails even if the text table displays 5.0. Scores belong to individual functions: any function above the limit in any analyzed file fails the run.
+
+To persist the limit, add `"threshold": 5` to `crap4ts.config.json`. The CLI option overrides the configured value. Without either setting, the run remains report-only.
+
+The complete report is printed before the command exits with code 3 for a threshold breach. Each offending function produces a `CRAP_THRESHOLD_EXCEEDED` diagnostic with its source location, score, and threshold. Text diagnostics go to stderr; JSON diagnostics remain inside the report so stdout stays parseable.
+
+The check applies only to functions selected by source roots, filters, and exclusions. It works with generated or existing coverage. `N/A` scores do not breach the threshold; their existing coverage diagnostics remain visible. A passing threshold check therefore does not guarantee complete coverage evidence.
+
 ## CLI options
 
 | Option | Meaning |
 | --- | --- |
 | `--source-root <path>` | Replace configured source roots. Repeat the option to add roots. |
 | `--exclude <glob>` | Append a source exclusion glob. Repeat to add more. |
+| `--threshold <number>` | Fail with exit code 3 when any function's CRAP score is greater than this limit. |
 | `--coverage-command <command>` | Replace the configured command for generated mode. |
 | `--coverage <path>` | Replace the project-relative coverage artifact path. |
 | `--coverage-format <format>` | Select `istanbul` or `lcov`. |
@@ -333,9 +351,9 @@ The analyzer reports `N/A` when no coverage file matches a source or no tracked 
 
 Cleanup accepts project-relative descendants only. The CLI rejects the project root, parent paths, absolute paths, and symbolic links that escape the project.
 
-The first release supports `.ts` and `.tsx` files, Istanbul JSON, and LCOV. It has no score threshold, so high scores do not change the exit code.
+The analyzer supports `.ts` and `.tsx` files, Istanbul JSON, and LCOV. High scores change the exit code only when a threshold is configured.
 
-Exit code 0 means analysis completed, even when diagnostics or `N/A` values exist. Exit code 1 means coverage generation, reading, parsing, mapping, or analysis failed. Exit code 2 means arguments or configuration are invalid.
+Exit code 0 means analysis completed without a threshold breach, even when coverage diagnostics or `N/A` values exist. Exit code 1 means coverage generation, reading, parsing, mapping, or analysis failed. Exit code 2 means arguments or configuration are invalid. Exit code 3 means at least one function's CRAP score exceeded the configured threshold.
 
 ## Install the agent skill
 

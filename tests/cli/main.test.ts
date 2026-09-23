@@ -107,6 +107,84 @@ afterEach(async () => {
 });
 
 describe('runCli', () => {
+  it.each([
+    { threshold: 5, status: 3 },
+    { threshold: 5.99, status: 3 },
+    { threshold: 6, status: 0 },
+    { threshold: 6.01, status: 0 },
+  ])('checks unrounded CRAP against $threshold in text and JSON', async ({ threshold, status }) => {
+    const projectRoot = await makeProject();
+    await writeConfig(projectRoot, {
+      sourceRoots: ['src'], coveragePath: 'coverage/data.json',
+      coverageFormat: 'istanbul', threshold: threshold,
+    });
+    await writeCoverage(projectRoot, 'coverage/data.json', istanbulCoverage(0));
+    for (const flags of [[], ['--json']]) {
+      const output = captureIo();
+      expect(await runCli(['--use-existing-coverage', ...flags], output.io, projectRoot)).toBe(status);
+      if (flags.length === 0) {
+        expect(output.stdout()).toContain('risk');
+        expect(output.stderr().includes('CRAP_THRESHOLD_EXCEEDED')).toBe(status === 3);
+      } else {
+        const report = JSON.parse(output.stdout());
+        expect(report.entries).toHaveLength(1);
+        expect(report.entries[0].crap).toBe(6);
+        expect(report.diagnostics).toHaveLength(status === 3 ? 1 : 0);
+        if (status === 3) expect(report.diagnostics[0]).toMatchObject({
+          code: 'CRAP_THRESHOLD_EXCEEDED', source: 'src/example.ts',
+          message: `Function "risk" has CRAP 6, exceeding threshold ${threshold}`,
+          range: { start: { line: 1, column: 1 } },
+        });
+        expect(output.stderr()).toBe('');
+      }
+    }
+  });
+
+  it('lets the CLI override config and propagates threshold failure through the built executable', async () => {
+    const projectRoot = await makeProject();
+    await writeConfig(projectRoot, {
+      sourceRoots: ['src'], coveragePath: 'coverage/data.json', coverageFormat: 'istanbul', threshold: 5,
+    });
+    await writeCoverage(projectRoot, 'coverage/data.json', istanbulCoverage(0));
+    const output = captureIo();
+    expect(await runCli(['--use-existing-coverage', '--threshold', '7'], output.io, projectRoot)).toBe(0);
+    await expect(runProcess(process.execPath, [builtCli, '--use-existing-coverage', '--threshold', '5', '--json'], projectRoot))
+      .rejects.toMatchObject({ code: 3, stderr: '', stdout: expect.stringContaining('CRAP_THRESHOLD_EXCEEDED') });
+  });
+
+  it('does not treat missing coverage as a threshold breach', async () => {
+    const projectRoot = await makeProject();
+    await writeConfig(projectRoot, {
+      sourceRoots: ['src'], coveragePath: 'coverage/data.json', coverageFormat: 'istanbul', threshold: 0,
+    });
+    await writeCoverage(projectRoot, 'coverage/data.json', istanbulCoverage(0, false));
+    const output = captureIo();
+    expect(await runCli(['--use-existing-coverage', '--json'], output.io, projectRoot)).toBe(0);
+    expect(JSON.parse(output.stdout())).toMatchObject({
+      entries: [{ crap: null }], diagnostics: [{ code: 'NO_TRACKED_COVERAGE' }],
+    });
+    expect(output.stdout()).not.toContain('CRAP_THRESHOLD_EXCEEDED');
+  });
+
+  it('checks only functions selected by filters and exclusions', async () => {
+    const projectRoot = await makeProject();
+    await writeFile(join(projectRoot, 'src/safe.ts'), sourceText);
+    await writeConfig(projectRoot, {
+      sourceRoots: ['src'], coveragePath: 'coverage/data.json', coverageFormat: 'istanbul', threshold: 5,
+    });
+    const coverage = {
+      ...JSON.parse(istanbulCoverage(0)),
+      ...JSON.parse(istanbulCoverage().replaceAll('src/example.ts', 'src/safe.ts')),
+    };
+    await writeCoverage(projectRoot, 'coverage/data.json', JSON.stringify(coverage));
+    for (const flags of [['safe'], ['--exclude', '**/example.ts']]) {
+      const output = captureIo();
+      expect(await runCli(['--use-existing-coverage', '--json', ...flags], output.io, projectRoot)).toBe(0);
+      expect(JSON.parse(output.stdout()).entries).toMatchObject([{ source: 'src/safe.ts', crap: 2 }]);
+    }
+    expect(await runCli(['--use-existing-coverage'], captureIo().io, projectRoot)).toBe(3);
+  });
+
   it('combines config and CLI exclusions before analysis in text and JSON reports', async () => {
     const projectRoot = await makeProject();
     await writeFile(join(projectRoot, 'src/example.test.ts'), sourceText);
@@ -258,17 +336,18 @@ await writeFile('coverage/coverage-final.json', ${JSON.stringify(generatedCovera
       coverageCommand: 'node generate-coverage.mjs',
       coveragePath: 'coverage/coverage-final.json',
       coverageFormat: 'istanbul',
+      threshold: 5,
     });
     await writeCoverage(projectRoot, 'coverage/coverage-final.json', 'stale artifact\n');
 
     const status = await runCli([], output.io, projectRoot);
 
-    expect(status).toBe(0);
+    expect(status).toBe(3);
     await expect(readFile(join(projectRoot, 'coverage/coverage-final.json'), 'utf8')).resolves.toBe(
       generatedCoverage,
     );
     expect(output.stdout()).toContain('0.0%');
-    expect(output.stderr()).toBe('');
+    expect(output.stderr()).toContain('CRAP_THRESHOLD_EXCEEDED');
   });
 
   it('keeps generated JSON stdout parseable when the coverage command writes to stdout', async () => {

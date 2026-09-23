@@ -1,8 +1,10 @@
 import { isAbsolute, win32 } from 'node:path';
 import { UsageError } from '../errors.js';
 import { exclusionPattern } from '../files/source-exclusions.js';
+import { thresholdValue } from '../config/threshold.js';
 
 export interface CliArgs {
+  threshold?: number;
   filters: string[];
   sourceRoots?: string[];
   exclude?: string[];
@@ -109,7 +111,14 @@ function coverageDirectoryOption(args: CliArgs, argv: string[], index: number): 
   return { nextIndex: index + 2 };
 }
 
+function thresholdOption(args: CliArgs, argv: string[], index: number): OptionResult {
+  const value = nonEmptyValue(optionValue(argv, index, '--threshold'), '--threshold');
+  args.threshold = thresholdValue(Number(value));
+  return { nextIndex: index + 2 };
+}
+
 const optionHandlers: Record<string, OptionHandler> = {
+  '--threshold': thresholdOption,
   '--use-existing-coverage': useExistingCoverageOption,
   '--json': jsonOption,
   '--no-color': noColorOption,

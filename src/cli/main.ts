@@ -17,6 +17,7 @@ import { formatTextReport, type TextReportOptions } from '../report/format-text.
 import { reportStyle, type ReportTerminal } from './report-style.js';
 import { TOOL_VERSION } from '../version.js';
 import { parseArgs } from './parse-args.js';
+import { checkThreshold } from './check-threshold.js';
 import { prepareCoverage } from './prepare-coverage.js';
 import { resolveOptions, type ResolvedOptions } from './resolve-options.js';
 import { runCoverageCommand } from './run-coverage.js';
@@ -26,6 +27,7 @@ const usage = `Usage: crap4ts [filters...] [options]
 Calculate cyclomatic complexity and coverage-weighted CRAP scores for TypeScript.
 
 Options:
+  --threshold <number>         Fail if any function's CRAP score exceeds this limit.
   --source-root <path>          Source root. Repeat to provide more than one.
   --exclude <glob>             Exclude source paths. Repeat to add to config exclusions.
   --coverage-command <command> Command that generates coverage.
@@ -76,9 +78,10 @@ export async function runCli(
     }
 
     const analysis = await analyzeFromOptions(options, projectRoot);
-    writeReport(options, analysis, io, reportStyle(io, args.noColor));
+    const checked = checkThreshold(analysis.result, options.threshold);
+    writeReport(options, { ...analysis, result: checked.result }, io, reportStyle(io, args.noColor));
 
-    return 0;
+    return checked.status;
   } catch (error) {
     const status = knownErrorStatus(error);
     if (status === undefined) throw error;

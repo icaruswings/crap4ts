@@ -24,6 +24,24 @@ afterEach(async () => {
 });
 
 describe('loadConfig', () => {
+  it.each([0, 6, 5.95])('accepts numeric threshold %s', async (threshold) => {
+    const projectRoot = await temporaryProject();
+    await writeConfig(projectRoot, { sourceRoots: ['src'], threshold });
+    await expect(loadConfig(projectRoot)).resolves.toEqual({ sourceRoots: ['src'], threshold });
+  });
+
+  it.each([-1, null, '6', true, [], {}])('rejects invalid threshold %j', async (threshold) => {
+    const projectRoot = await temporaryProject();
+    await writeConfig(projectRoot, { sourceRoots: ['src'], threshold });
+    await expect(loadConfig(projectRoot)).rejects.toBeInstanceOf(ConfigError);
+  });
+
+  it('rejects an overflowing numeric threshold', async () => {
+    const projectRoot = await temporaryProject();
+    await writeConfig(projectRoot, '{"sourceRoots":["src"],"threshold":1e400}');
+    await expect(loadConfig(projectRoot)).rejects.toBeInstanceOf(ConfigError);
+  });
+
   it('loads every approved configuration field', async () => {
     const projectRoot = await temporaryProject();
     await writeConfig(projectRoot, {

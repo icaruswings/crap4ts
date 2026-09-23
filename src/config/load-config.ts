@@ -2,8 +2,10 @@ import { readFile } from 'node:fs/promises';
 import { isAbsolute, join, win32 } from 'node:path';
 import { ConfigError } from '../errors.js';
 import { exclusionPattern } from '../files/source-exclusions.js';
+import { thresholdValue } from './threshold.js';
 
 export interface ProjectConfig {
+  threshold?: number;
   sourceRoots: string[];
   exclude?: string[];
   coverageCommand?: string;
@@ -14,6 +16,7 @@ export interface ProjectConfig {
 
 const CONFIG_FILENAME = 'crap4ts.config.json';
 const CONFIG_KEYS = new Set([
+  'threshold',
   'sourceRoots',
   'exclude',
   'coverageCommand',
@@ -76,6 +79,7 @@ function optionalField<Key extends keyof ParsedOptionalConfig>(
 }
 
 const OPTIONAL_FIELDS = [
+  optionalField('threshold', thresholdValue),
   optionalField('exclude', exclusions),
   optionalField('coverageCommand', (value) => nonEmptyString(value, 'coverageCommand')),
   optionalField('coveragePath', (value) => relativePath(value, 'coveragePath')),
